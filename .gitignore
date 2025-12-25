@@ -1,5 +1,10 @@
 # System files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 *.log
 *.swp
@@ -19,6 +24,9 @@ Thumbs.db
 *.userosscache
 *.sln.docstates
 
+# Visual Studio cache/options directory
+.vs/
+
 # Build outputs
 bin/
 obj/
@@ -28,6 +36,15 @@ dist/
 *.dll
 *.exe
 *.pdb
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
 
 # Dependencies
 node_modules/
@@ -38,6 +55,11 @@ __pycache__/
 .pytest_cache/
 venv/
 env/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
 
 # Docker
 .docker-data/
