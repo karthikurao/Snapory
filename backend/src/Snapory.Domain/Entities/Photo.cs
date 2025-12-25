@@ -12,6 +12,10 @@ public class Photo
     public string? EventId { get; set; }
     public PhotoStatus Status { get; set; }
     public string? ProcessingMetadata { get; set; }
+    
+    // Navigation properties
+    public Event? Event { get; set; }
+    public List<PhotoFace> DetectedFaces { get; set; } = new();
 }
 
 public enum PhotoStatus
