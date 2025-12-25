@@ -42,14 +42,21 @@ fi
 echo "📦 Creating namespace..."
 kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 
-# Create secrets
+# Check secrets
 echo "🔐 Creating secrets..."
 echo "⚠️  Make sure to update these with your actual values!"
+
+# Validate that secrets are not placeholder values
+if [ "$S3_ACCESS_KEY" = "your-access-key" ] || [ -z "$S3_ACCESS_KEY" ]; then
+    echo "❌ Error: S3_ACCESS_KEY is not configured. Please update .env file."
+    exit 1
+fi
+
 kubectl create secret generic snapory-secrets \
-    --from-literal=s3-access-key=your-access-key \
-    --from-literal=s3-secret-key=your-secret-key \
-    --from-literal=jwt-secret=your-jwt-secret \
-    --from-literal=redis-password=your-redis-password \
+    --from-literal=s3-access-key="${S3_ACCESS_KEY}" \
+    --from-literal=s3-secret-key="${S3_SECRET_KEY}" \
+    --from-literal=jwt-secret="${JWT_SECRET}" \
+    --from-literal=redis-password="${REDIS_PASSWORD}" \
     --namespace=$NAMESPACE \
     --dry-run=client -o yaml | kubectl apply -f -
 

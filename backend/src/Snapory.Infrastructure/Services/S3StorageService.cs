@@ -79,8 +79,9 @@ public class S3StorageService : IStorageService
                 Expires = DateTime.UtcNow.AddMinutes(expirationMinutes)
             };
 
-            var url = await _s3Client.GetPreSignedURLAsync(request);
-            return url;
+            // GetPreSignedURL is synchronous but we wrap it for consistency
+            var url = _s3Client.GetPreSignedURL(request);
+            return await Task.FromResult(url);
         }
         catch (Exception ex)
         {

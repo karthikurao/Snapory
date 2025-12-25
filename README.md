@@ -204,6 +204,36 @@ cd ai-service
 pytest
 ```
 
+## ⚠️ MVP Limitations
+
+This is a minimum viable product (MVP) template with the following known limitations:
+
+1. **In-Memory Storage**: Photo metadata is stored in-memory (not persisted). For production:
+   - Add a database (PostgreSQL, MongoDB, etc.)
+   - Implement proper entity persistence
+   - Use Entity Framework Core or another ORM
+
+2. **Scalability**: Single Redis instance limits horizontal scaling:
+   - For production, use Redis cluster or managed Redis
+   - Consider using a proper message queue (RabbitMQ, Azure Service Bus)
+
+3. **Authentication**: JWT infrastructure is in place but not fully implemented:
+   - Add user registration/login
+   - Implement JWT token generation and validation
+   - Add authorization policies
+
+4. **Photo Processing**: Basic metadata extraction only:
+   - Integrate ML models for advanced features
+   - Add face detection, object recognition, etc.
+   - Implement image optimization pipeline
+
+5. **Error Handling**: Basic error handling implemented:
+   - Add comprehensive error tracking (Sentry, Application Insights)
+   - Implement retry policies
+   - Add circuit breakers for external services
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture and future enhancements.
+
 ## 🚢 Deployment
 
 ### Docker Compose (Recommended for Small Scale)

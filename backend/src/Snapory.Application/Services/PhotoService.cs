@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Snapory.Application.DTOs;
@@ -18,7 +19,8 @@ public class PhotoService : IPhotoService
     private readonly IStorageService _storageService;
     private readonly IBackgroundJobService _backgroundJobService;
     private readonly ILogger<PhotoService> _logger;
-    private static readonly Dictionary<Guid, Photo> _photoStore = new(); // In-memory store for MVP
+    // Use ConcurrentDictionary for thread-safe operations
+    private static readonly ConcurrentDictionary<Guid, Photo> _photoStore = new();
 
     private static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
     private const long MaxFileSizeBytes = 10 * 1024 * 1024; // 10 MB
