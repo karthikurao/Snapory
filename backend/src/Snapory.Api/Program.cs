@@ -1,6 +1,8 @@
 using Snapory.Application;
 using Snapory.Infrastructure;
+using Snapory.Infrastructure.Data;
 using Microsoft.OpenApi.Models;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +52,13 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
+
+// Run database migrations
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<SnaporyDbContext>();
+    dbContext.Database.EnsureCreated();
+}
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
