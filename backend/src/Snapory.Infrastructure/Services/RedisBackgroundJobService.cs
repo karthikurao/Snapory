@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using Snapory.Domain.Interfaces;
 using Snapory.Infrastructure.Configuration;

@@ -2,6 +2,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.Runtime;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using Snapory.Domain.Interfaces;
 using Snapory.Infrastructure.Configuration;
 

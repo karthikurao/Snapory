@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Snapory.Application.DTOs;
 using Snapory.Domain.Entities;
 using Snapory.Domain.Interfaces;
