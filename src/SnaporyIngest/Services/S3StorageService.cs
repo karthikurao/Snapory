@@ -40,7 +40,7 @@ public class S3StorageService : IS3StorageService
 
                 var response = await _s3Client.PutObjectAsync(request, cancellationToken);
                 
-                if (response.HttpStatusCode == System.Net.HttpStatusCode.OK)
+                if ((int)response.HttpStatusCode >= 200 && (int)response.HttpStatusCode < 300)
                 {
                     _logger.LogInformation("Successfully uploaded photo to S3: {S3Key}", s3Key);
                     return s3Key;
@@ -66,7 +66,7 @@ public class S3StorageService : IS3StorageService
             }
         }
         
-        throw new Exception("Unexpected error during S3 upload");
+        throw new Exception("Failed to upload photo to S3 after exhausting all retries");
     }
 
     public async Task<bool> DeletePhotoAsync(string s3Key, CancellationToken cancellationToken = default)
