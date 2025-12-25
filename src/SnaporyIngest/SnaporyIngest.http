@@ -1,0 +1,20 @@
+@SnaporyIngest_HostAddress = http://localhost:8080
+
+### Health Check
+GET {{SnaporyIngest_HostAddress}}/health
+Accept: application/json
+
+### Create Event
+POST {{SnaporyIngest_HostAddress}}/events
+Content-Type: application/json
+
+{
+  "name": "Test Event",
+  "description": "Testing photo upload functionality"
+}
+
+### Get Event (replace {eventId} with actual event ID)
+GET {{SnaporyIngest_HostAddress}}/events/{eventId}
+Accept: application/json
+
+###
