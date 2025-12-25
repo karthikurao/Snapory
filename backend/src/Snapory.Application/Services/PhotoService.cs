@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Snapory.Application.DTOs;
@@ -17,8 +18,9 @@ public class PhotoService : IPhotoService
 {
     private readonly IStorageService _storageService;
     private readonly IBackgroundJobService _backgroundJobService;
-    private readonly IPhotoRepository _photoRepository;
     private readonly ILogger<PhotoService> _logger;
+    // Use ConcurrentDictionary for thread-safe operations
+    private static readonly ConcurrentDictionary<Guid, Photo> _photoStore = new();
 
     private static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
     private const long MaxFileSizeBytes = 10 * 1024 * 1024; // 10 MB
@@ -26,12 +28,10 @@ public class PhotoService : IPhotoService
     public PhotoService(
         IStorageService storageService,
         IBackgroundJobService backgroundJobService,
-        IPhotoRepository photoRepository,
         ILogger<PhotoService> logger)
     {
         _storageService = storageService;
         _backgroundJobService = backgroundJobService;
-        _photoRepository = photoRepository;
         _logger = logger;
     }
 
@@ -80,8 +80,8 @@ public class PhotoService : IPhotoService
                 Status = PhotoStatus.Uploaded
             };
 
-            // Save to database
-            await _photoRepository.CreateAsync(photo, cancellationToken);
+            // Store photo metadata (in-memory for MVP)
+            _photoStore[photo.Id] = photo;
 
             // Enqueue background job for AI processing
             await _backgroundJobService.EnqueuePhotoProcessingAsync(photo.Id, storageKey, cancellationToken);
@@ -105,40 +105,41 @@ public class PhotoService : IPhotoService
         }
     }
 
-    public async Task<PhotoResponse?> GetPhotoAsync(Guid photoId, CancellationToken cancellationToken = default)
+    public Task<PhotoResponse?> GetPhotoAsync(Guid photoId, CancellationToken cancellationToken = default)
     {
-        var photo = await _photoRepository.GetByIdAsync(photoId, cancellationToken);
-        
-        if (photo == null)
+        if (_photoStore.TryGetValue(photoId, out var photo))
         {
-            return null;
+            return Task.FromResult<PhotoResponse?>(new PhotoResponse
+            {
+                Id = photo.Id,
+                FileName = photo.FileName,
+                StorageUrl = photo.StorageUrl,
+                SizeInBytes = photo.SizeInBytes,
+                UploadedAt = photo.UploadedAt,
+                EventId = photo.EventId,
+                Status = photo.Status.ToString()
+            });
         }
 
-        return new PhotoResponse
-        {
-            Id = photo.Id,
-            FileName = photo.FileName,
-            StorageUrl = photo.StorageUrl,
-            SizeInBytes = photo.SizeInBytes,
-            UploadedAt = photo.UploadedAt,
-            EventId = photo.EventId,
-            Status = photo.Status.ToString()
-        };
+        return Task.FromResult<PhotoResponse?>(null);
     }
 
-    public async Task<IEnumerable<PhotoResponse>> GetEventPhotosAsync(string eventId, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<PhotoResponse>> GetEventPhotosAsync(string eventId, CancellationToken cancellationToken = default)
     {
-        var photos = await _photoRepository.GetByEventIdAsync(eventId, cancellationToken);
-        
-        return photos.Select(p => new PhotoResponse
-        {
-            Id = p.Id,
-            FileName = p.FileName,
-            StorageUrl = p.StorageUrl,
-            SizeInBytes = p.SizeInBytes,
-            UploadedAt = p.UploadedAt,
-            EventId = p.EventId,
-            Status = p.Status.ToString()
-        });
+        var photos = _photoStore.Values
+            .Where(p => p.EventId == eventId)
+            .OrderByDescending(p => p.UploadedAt)
+            .Select(p => new PhotoResponse
+            {
+                Id = p.Id,
+                FileName = p.FileName,
+                StorageUrl = p.StorageUrl,
+                SizeInBytes = p.SizeInBytes,
+                UploadedAt = p.UploadedAt,
+                EventId = p.EventId,
+                Status = p.Status.ToString()
+            });
+
+        return Task.FromResult(photos);
     }
 }
