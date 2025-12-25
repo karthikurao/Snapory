@@ -15,10 +15,8 @@ public class QrCodeService : IQrCodeService
         _baseUrl = configuration["App:BaseUrl"] ?? "https://snapory.app";
     }
 
-    public async Task<string> GenerateQrCodeAsync(string eventId, string eventUrl, CancellationToken cancellationToken = default)
+    public Task<string> GenerateQrCodeAsync(string eventId, string eventUrl, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask; // Make it async-compatible
-        
         try
         {
             using var qrGenerator = new QRCodeGenerator();
@@ -30,7 +28,7 @@ public class QrCodeService : IQrCodeService
             var base64QrCode = Convert.ToBase64String(qrCodeBytes);
             _logger.LogInformation("Generated QR code for event {EventId}", eventId);
             
-            return $"data:image/png;base64,{base64QrCode}";
+            return Task.FromResult($"data:image/png;base64,{base64QrCode}");
         }
         catch (Exception ex)
         {

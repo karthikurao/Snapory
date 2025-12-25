@@ -3,6 +3,7 @@ using Snapory.Domain.Entities;
 using Snapory.Domain.Interfaces;
 using Snapory.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 
 namespace Snapory.Infrastructure.Services;
 
@@ -22,9 +23,8 @@ public class OtpService : IOtpService
 
     public async Task<string> GenerateOtpAsync(string phoneNumber, string eventId, CancellationToken cancellationToken = default)
     {
-        // Generate random OTP
-        var random = new Random();
-        var otpCode = random.Next(100000, 999999).ToString();
+        // Generate cryptographically secure random OTP
+        var otpCode = GenerateSecureOtp();
 
         // Create OTP record
         var otpVerification = new OtpVerification
@@ -44,6 +44,13 @@ public class OtpService : IOtpService
         _logger.LogInformation("Generated OTP for phone {PhoneNumber} and event {EventId}", phoneNumber, eventId);
         
         return otpCode;
+    }
+
+    private string GenerateSecureOtp()
+    {
+        // Use cryptographically secure random number generator
+        var otpNumber = RandomNumberGenerator.GetInt32(100000, 999999);
+        return otpNumber.ToString();
     }
 
     public async Task<bool> VerifyOtpAsync(string phoneNumber, string eventId, string otpCode, CancellationToken cancellationToken = default)

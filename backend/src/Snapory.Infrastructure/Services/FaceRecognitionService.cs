@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Snapory.Domain.Interfaces;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 
 namespace Snapory.Infrastructure.Services;
 
@@ -10,16 +11,18 @@ public class FaceRecognitionService : IFaceRecognitionService
     private readonly HttpClient _httpClient;
     private readonly ILogger<FaceRecognitionService> _logger;
     private readonly IGuestRepository _guestRepository;
-    private const float MATCH_THRESHOLD = 0.6f;
+    private readonly float _matchThreshold;
 
     public FaceRecognitionService(
         IHttpClientFactory httpClientFactory, 
         ILogger<FaceRecognitionService> logger,
-        IGuestRepository guestRepository)
+        IGuestRepository guestRepository,
+        IConfiguration configuration)
     {
         _httpClient = httpClientFactory.CreateClient("AiService");
         _logger = logger;
         _guestRepository = guestRepository;
+        _matchThreshold = configuration.GetValue<float>("FaceRecognition:MatchThreshold", 0.6f);
     }
 
     public async Task<string> ExtractFaceEmbeddingAsync(Stream imageStream, CancellationToken cancellationToken = default)
@@ -94,7 +97,7 @@ public class FaceRecognitionService : IFaceRecognitionService
 
                 var similarity = CompareFaces(faceEmbedding, guest.FaceEmbedding);
                 
-                if (similarity >= MATCH_THRESHOLD && (bestConfidence == null || similarity > bestConfidence))
+                if (similarity >= _matchThreshold && (bestConfidence == null || similarity > bestConfidence))
                 {
                     bestMatchId = guest.Id;
                     bestConfidence = similarity;

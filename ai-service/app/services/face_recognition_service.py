@@ -141,9 +141,12 @@ class FaceRecognitionService:
             if norm1 == 0 or norm2 == 0:
                 return 0.0
             
+            # Cosine similarity ranges from -1 to 1
+            # For face embeddings, it typically ranges from 0 to 1
             similarity = dot_product / (norm1 * norm2)
-            # Convert to 0-1 range (cosine similarity is -1 to 1)
-            similarity = (similarity + 1) / 2
+            
+            # Ensure value is between 0 and 1
+            similarity = max(0.0, min(1.0, similarity))
             
             return float(similarity)
             
