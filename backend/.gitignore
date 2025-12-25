@@ -1,0 +1,36 @@
+# Backend .gitignore
+
+# Build results
+bin/
+obj/
+out/
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio
+.vs/
+*.userprefs
+
+# Rider
+.idea/
+*.sln.iml
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+
+# Build outputs
+*.dll
+*.exe
+*.pdb
