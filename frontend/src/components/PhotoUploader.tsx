@@ -327,7 +327,7 @@ export default function PhotoUploader() {
           <div style={{ color: 'var(--success-foreground)', fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>Upload Successful!</div>
           <p style={{ fontSize: '0.8125rem', color: 'var(--success-foreground)', marginBottom: '1rem' }}>
             Your photo has been added to the event.
-            {uploadResult.photos.length > 0 && ` (Photo ID: ${uploadResult.photos[0].photoId.substring(0, 8)}...)`}
+            {uploadResult.photos && uploadResult.photos.length > 0 && ` (Photo ID: ${uploadResult.photos[0].photoId.substring(0, 8)}...)`}
           </p>
         </div>
       )}
