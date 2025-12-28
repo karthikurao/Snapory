@@ -30,30 +30,17 @@ public class Event
         
         using (var rng = RandomNumberGenerator.Create())
         {
-            var randomBytes = new byte[6];
-            rng.GetBytes(randomBytes);
-            
             for (int i = 0; i < 6; i++)
             {
-                // Use rejection sampling to ensure uniform distribution
-                int value;
+                byte randomByte;
                 do
                 {
-                    value = randomBytes[i];
-                    if (value >= 256 - (256 % chars.Length))
-                    {
-                        // Rejection sampling: get a new byte if this would introduce bias
-                        var newByte = new byte[1];
-                        rng.GetBytes(newByte);
-                        randomBytes[i] = newByte[0];
-                    }
-                    else
-                    {
-                        break;
-                    }
-                } while (true);
+                    var buffer = new byte[1];
+                    rng.GetBytes(buffer);
+                    randomByte = buffer[0];
+                } while (randomByte >= 256 - (256 % chars.Length));
                 
-                code[i] = chars[value % chars.Length];
+                code[i] = chars[randomByte % chars.Length];
             }
         }
         
