@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { apiClient, PhotoUploadResponse } from '@/lib/api-client';
 
 export default function PhotoUploader() {
@@ -80,10 +80,22 @@ export default function PhotoUploader() {
 
   const clearSelection = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setSelectedFile(null);
     setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const dropzoneStyles: React.CSSProperties = {
     border: '2px dashed',
@@ -132,7 +144,7 @@ export default function PhotoUploader() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
                 src={previewUrl} 
-                alt="Preview" 
+                alt="Preview of selected photo" 
                 style={{ 
                   width: '100%', 
                   height: '100%', 
@@ -271,9 +283,9 @@ export default function PhotoUploader() {
         <div style={{
           padding: '0.875rem 1rem',
           fontSize: '0.875rem',
-          color: '#dc2626',
-          backgroundColor: '#fef2f2',
-          border: '1px solid #fecaca',
+          color: 'var(--destructive-foreground)',
+          backgroundColor: 'var(--destructive-light)',
+          border: '1px solid var(--destructive)',
           borderRadius: 'var(--radius)',
           display: 'flex',
           alignItems: 'center',
@@ -292,8 +304,8 @@ export default function PhotoUploader() {
       {uploadResult && (
         <div style={{
           padding: '1.25rem',
-          backgroundColor: '#f0fdf4',
-          border: '1px solid #bbf7d0',
+          backgroundColor: 'var(--success-light)',
+          border: '1px solid var(--success)',
           borderRadius: 'var(--radius)',
           textAlign: 'center',
           animation: 'fadeIn 0.3s ease'
@@ -301,19 +313,19 @@ export default function PhotoUploader() {
           <div style={{
             width: '48px',
             height: '48px',
-            backgroundColor: '#dcfce7',
+            backgroundColor: 'var(--success-lighter)',
             borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 0.75rem'
           }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6 9 17l-5-5"/>
             </svg>
           </div>
-          <div style={{ color: '#166534', fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>Upload Successful!</div>
-          <p style={{ fontSize: '0.8125rem', color: '#15803d', marginBottom: '1rem' }}>Your photo has been added to the event.</p>
+          <div style={{ color: 'var(--success-foreground)', fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>Upload Successful!</div>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--success-foreground)', marginBottom: '1rem' }}>Your photo has been added to the event.</p>
           <a 
             href={uploadResult.storageUrl} 
             target="_blank" 
@@ -324,11 +336,11 @@ export default function PhotoUploader() {
               justifyContent: 'center',
               padding: '0.5rem 1rem',
               backgroundColor: 'white',
-              border: '1px solid #bbf7d0',
+              border: '1px solid var(--success)',
               borderRadius: 'var(--radius)',
               fontSize: '0.8125rem',
               fontWeight: 500,
-              color: '#166534',
+              color: 'var(--success-foreground)',
               textDecoration: 'none',
               boxShadow: 'var(--shadow-sm)',
               transition: 'all 0.2s'

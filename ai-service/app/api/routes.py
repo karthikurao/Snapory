@@ -70,8 +70,24 @@ async def detect_faces(file: UploadFile = File(...)):
         if not file.content_type or not file.content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail="File must be an image")
         
+        # Validate specific image formats
+        allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Unsupported image format. Allowed formats: {', '.join(allowed_types)}"
+            )
+        
         # Read image data
         image_data = await file.read()
+        
+        # Validate file size (10MB max)
+        max_size = 10 * 1024 * 1024  # 10MB
+        if len(image_data) > max_size:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"File size exceeds maximum limit of {max_size / (1024 * 1024):.0f}MB"
+            )
         
         # Detect faces
         result = face_service.detect_faces(image_data)
@@ -99,8 +115,24 @@ async def encode_selfie(file: UploadFile = File(...)):
         if not file.content_type or not file.content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail="File must be an image")
         
+        # Validate specific image formats
+        allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Unsupported image format. Allowed formats: {', '.join(allowed_types)}"
+            )
+        
         # Read image data
         image_data = await file.read()
+        
+        # Validate file size (10MB max)
+        max_size = 10 * 1024 * 1024  # 10MB
+        if len(image_data) > max_size:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"File size exceeds maximum limit of {max_size / (1024 * 1024):.0f}MB"
+            )
         
         # Encode selfie
         encoding = face_service.encode_selfie(image_data)

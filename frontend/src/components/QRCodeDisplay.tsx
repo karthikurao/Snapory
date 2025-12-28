@@ -1,6 +1,7 @@
 'use client';
 
 import { QRCodeSVG } from 'qrcode.react';
+import { useState } from 'react';
 
 interface QRCodeDisplayProps {
   eventCode: string;
@@ -10,6 +11,12 @@ interface QRCodeDisplayProps {
 
 export default function QRCodeDisplay({ eventCode, eventName, size = 200 }: QRCodeDisplayProps) {
   const eventUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/event/${eventCode}`;
+  const [copyMessage, setCopyMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const showCopyMessage = (text: string, type: 'success' | 'error', duration: number = 3000) => {
+    setCopyMessage({ text, type });
+    setTimeout(() => setCopyMessage(null), duration);
+  };
 
   const downloadQRCode = () => {
     const svg = document.getElementById('event-qr-code');
@@ -39,18 +46,32 @@ export default function QRCodeDisplay({ eventCode, eventName, size = 200 }: QRCo
   };
 
   const copyLink = async () => {
+    const successMsg = 'Link copied to clipboard!';
+    const errorMsg = `Failed to copy link. Please copy it manually: ${eventUrl}`;
+    
     try {
       await navigator.clipboard.writeText(eventUrl);
-      alert('Link copied to clipboard!');
-    } catch {
+      showCopyMessage(successMsg, 'success');
+    } catch (error) {
+      console.error('Failed to copy link using navigator.clipboard:', error);
       // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = eventUrl;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      alert('Link copied to clipboard!');
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = eventUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        const success = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (success) {
+          showCopyMessage(successMsg, 'success');
+        } else {
+          showCopyMessage(errorMsg, 'error', 5000);
+        }
+      } catch (fallbackError) {
+        console.error('Fallback clipboard copy failed:', fallbackError);
+        showCopyMessage(errorMsg, 'error', 5000);
+      }
     }
   };
 
@@ -142,6 +163,23 @@ export default function QRCodeDisplay({ eventCode, eventName, size = 200 }: QRCo
       }}>
         {eventUrl}
       </p>
+
+      {/* Copy message notification */}
+      {copyMessage && (
+        <div style={{
+          marginTop: '1rem',
+          padding: '0.75rem 1rem',
+          fontSize: '0.875rem',
+          color: copyMessage.type === 'success' ? 'var(--success-foreground)' : 'var(--destructive-foreground)',
+          backgroundColor: copyMessage.type === 'success' ? 'var(--success-light)' : 'var(--destructive-light)',
+          border: `1px solid ${copyMessage.type === 'success' ? 'var(--success)' : 'var(--destructive)'}`,
+          borderRadius: 'var(--radius)',
+          textAlign: 'center',
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          {copyMessage.text}
+        </div>
+      )}
     </div>
   );
 }

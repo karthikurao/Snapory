@@ -31,7 +31,12 @@ class FaceService:
         Initialize FaceService.
         
         Args:
-            match_threshold: Distance threshold for face matching (lower = stricter)
+            match_threshold: Distance threshold for face matching (default: 0.6).
+                Lower values (e.g., 0.4-0.5) result in stricter matching with fewer false positives,
+                but may miss some valid matches. Higher values (e.g., 0.7-0.8) are more lenient
+                and catch more matches but increase false positives. The default of 0.6 provides
+                a good balance for most use cases. This threshold is compared against the Euclidean
+                distance between face encoding vectors (128-dimensional).
         """
         self.match_threshold = match_threshold
         self.is_available = FACE_RECOGNITION_AVAILABLE
@@ -152,8 +157,11 @@ class FaceService:
                 # Calculate face distance (lower = more similar)
                 distance = np.linalg.norm(selfie_vector - photo_vector)
                 
-                # Convert distance to confidence (0-1, higher = more confident)
-                confidence = max(0, 1 - (distance / self.match_threshold))
+                # Convert distance to confidence (0-1, higher = more confident).
+                # We use 1 / (1 + distance) to keep confidence in (0, 1] and
+                # monotonically decreasing as distance increases, independent
+                # of the chosen match threshold.
+                confidence = 1.0 / (1.0 + float(distance))
                 
                 if distance <= self.match_threshold:
                     matches.append({
@@ -214,9 +222,24 @@ class FaceService:
         return matching_photos
     
     def _mock_detect_faces(self, image: Image.Image) -> dict:
-        """Mock face detection when face_recognition is not available."""
-        # Simulate detection based on image size
+        """
+        Mock face detection when face_recognition is not available.
+        
+        Args:
+            image: PIL Image object
+            
+        Returns:
+            Mock face detection result with random faces for testing
+        """
         import random
+        
+        # Multiplier for creating unique seeds from image dimensions
+        SEED_MULTIPLIER = 1000
+        
+        # Use image dimensions for deterministic seeding
+        seed = (image.width * SEED_MULTIPLIER) + image.height
+        random.seed(seed)
+        
         face_count = random.randint(0, 3)
         
         encodings = [
@@ -236,8 +259,17 @@ class FaceService:
         }
     
     def _mock_match_faces(self, count: int) -> list[dict]:
-        """Mock face matching when face_recognition is not available."""
+        """
+        Mock face matching when face_recognition is not available.
+        
+        Args:
+            count: Number of photo encodings to match against
+            
+        Returns:
+            Mock match results for testing
+        """
         import random
+        
         matches = []
         for i in range(count):
             if random.random() > 0.7:  # 30% match rate

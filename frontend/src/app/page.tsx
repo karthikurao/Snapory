@@ -245,10 +245,10 @@ export default function Home() {
             </span>
           </div>
           <div className="footer-links">
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <a href="#">Contact</a>
-            <a href="#">Help</a>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+            <Link href="/contact">Contact</Link>
+            <Link href="/help">Help</Link>
           </div>
           <p style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem', margin: 0 }}>
             © {new Date().getFullYear()} Snapory. Built for Indian events.
