@@ -104,9 +104,12 @@ export default function EventDetailPage() {
     return `${window.location.origin}/event/${event?.guestAccessCode}`;
   };
 
-  const copyGuestLink = () => {
-    navigator.clipboard.writeText(getQrUrl());
-    alert('Guest link copied to clipboard!');
+  const copyGuestLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getQrUrl());
+    } catch (err) {
+      console.error('Failed to copy guest link to clipboard:', err);
+    }
   };
 
   if (authLoading || isLoading) {
