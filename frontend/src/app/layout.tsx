@@ -13,8 +13,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#09090b' },
@@ -35,7 +33,8 @@ export default function RootLayout({
               (function() {
                 try {
                   var theme = localStorage.getItem('theme');
-                  if (theme && theme !== 'system') {
+                  var validThemes = ['light', 'dark'];
+                  if (theme && validThemes.includes(theme)) {
                     document.documentElement.setAttribute('data-theme', theme);
                   }
                 } catch (e) {}
@@ -55,7 +54,7 @@ export default function RootLayout({
               Snapory
             </Link>
             <div className="flex gap-4 items-center">
-              <Link href="#features" className="nav-link" style={{ color: 'var(--muted-foreground)', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500 }}>Features</Link>
+              <Link href="/#features" className="nav-link" style={{ color: 'var(--muted-foreground)', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500 }}>Features</Link>
               <Link href="/dashboard/demo" className="nav-link" style={{ color: 'var(--muted-foreground)', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500 }}>Dashboard</Link>
               <ThemeToggle />
               <Link href="/create-event" className="btn btn-primary" style={{ height: '2.25rem', padding: '0 1rem', fontSize: '0.8rem' }}>Create Event</Link>
