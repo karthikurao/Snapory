@@ -27,6 +27,7 @@ public class Event
     {
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         var code = new char[6];
+        var buffer = new byte[1];
         
         using (var rng = RandomNumberGenerator.Create())
         {
@@ -35,7 +36,6 @@ public class Event
                 byte randomByte;
                 do
                 {
-                    var buffer = new byte[1];
                     rng.GetBytes(buffer);
                     randomByte = buffer[0];
                 } while (randomByte >= 256 - (256 % chars.Length));
