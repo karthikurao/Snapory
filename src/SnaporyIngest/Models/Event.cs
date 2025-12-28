@@ -27,13 +27,15 @@ public class Event
     {
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         var code = new char[6];
+        var buffer = new byte[1];
         
         for (int i = 0; i < 6; i++)
         {
             byte randomByte;
             do
             {
-                randomByte = RandomNumberGenerator.GetBytes(1)[0];
+                RandomNumberGenerator.Fill(buffer);
+                randomByte = buffer[0];
             } while (randomByte >= 256 - (256 % chars.Length));
             
             code[i] = chars[randomByte % chars.Length];
