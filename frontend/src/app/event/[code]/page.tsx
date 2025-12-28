@@ -98,7 +98,9 @@ export default function GuestAccessPage() {
   // Cleanup camera on unmount or when navigating away
   useEffect(() => {
     return () => {
-      // Cleanup camera stream when component unmounts
+      // Directly access streamRef instead of calling stopCamera() to avoid
+      // adding stopCamera to the dependency array, which would require
+      // memoization and could cause unnecessary re-renders
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
