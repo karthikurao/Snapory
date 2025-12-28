@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace SnaporyIngest.Models;
 
 public class Event
@@ -24,7 +26,19 @@ public class Event
     private static string GenerateAccessCode()
     {
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        var random = new Random();
-        return new string(Enumerable.Range(0, 6).Select(_ => chars[random.Next(chars.Length)]).ToArray());
+        var code = new char[6];
+        var randomBytes = new byte[6];
+        
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(randomBytes);
+        }
+        
+        for (int i = 0; i < 6; i++)
+        {
+            code[i] = chars[randomBytes[i] % chars.Length];
+        }
+        
+        return new string(code);
     }
 }
