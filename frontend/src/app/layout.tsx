@@ -32,9 +32,9 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
+                  const VALID_THEME_VALUES = ['light', 'dark'];
                   var theme = localStorage.getItem('theme');
-                  var validThemes = ['light', 'dark'];
-                  if (theme && validThemes.includes(theme)) {
+                  if (theme && VALID_THEME_VALUES.includes(theme)) {
                     document.documentElement.setAttribute('data-theme', theme);
                   }
                 } catch (e) {}

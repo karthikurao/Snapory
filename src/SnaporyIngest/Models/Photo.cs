@@ -25,12 +25,12 @@ public class Photo
         {
             if (value != null && !string.IsNullOrWhiteSpace(value))
             {
-                // Validate that it's valid JSON
+                // Validate that it's valid JSON (parse and immediately dispose)
                 try
                 {
                     using (JsonDocument.Parse(value))
                     {
-                        // JSON is valid
+                        // Validation successful - document is disposed automatically
                     }
                     _faceEncodings = value;
                 }

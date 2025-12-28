@@ -47,7 +47,7 @@ export default function QRCodeDisplay({ eventCode, eventName, size = 200 }: QRCo
 
   const copyLink = async () => {
     const successMsg = 'Link copied to clipboard!';
-    const errorMsg = `Failed to copy link. Please copy it manually:\n${eventUrl}`;
+    const errorMsg = `Failed to copy link. Please copy it manually: ${eventUrl}`;
     
     try {
       await navigator.clipboard.writeText(eventUrl);

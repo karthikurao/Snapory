@@ -233,8 +233,11 @@ class FaceService:
         """
         import random
         
+        # Multiplier for creating unique seeds from image dimensions
+        SEED_MULTIPLIER = 1000
+        
         # Use image dimensions for deterministic seeding
-        seed = (image.width * 1000) + image.height
+        seed = (image.width * SEED_MULTIPLIER) + image.height
         random.seed(seed)
         
         face_count = random.randint(0, 3)
