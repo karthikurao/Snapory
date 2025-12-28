@@ -185,7 +185,9 @@ public class PhotoProcessingBackgroundService : BackgroundService
             p.ProcessingStatus == PhotoProcessingStatus.NoFacesDetected ||
             p.ProcessingStatus == PhotoProcessingStatus.Failed);
         eventEntity.TotalFacesDetected = eventEntity.Photos.Sum(p => p.FaceCount);
-        eventEntity.IsProcessingComplete = eventEntity.ProcessedPhotos == eventEntity.TotalPhotos;
+        eventEntity.IsProcessingComplete = !eventEntity.Photos.Any(p => 
+            p.ProcessingStatus == PhotoProcessingStatus.Pending || 
+            p.ProcessingStatus == PhotoProcessingStatus.Processing);
 
         await context.SaveChangesAsync(cancellationToken);
     }
