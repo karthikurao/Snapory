@@ -27,16 +27,34 @@ public class Event
     {
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         var code = new char[6];
-        var randomBytes = new byte[6];
         
         using (var rng = RandomNumberGenerator.Create())
         {
+            var randomBytes = new byte[6];
             rng.GetBytes(randomBytes);
-        }
-        
-        for (int i = 0; i < 6; i++)
-        {
-            code[i] = chars[randomBytes[i] % chars.Length];
+            
+            for (int i = 0; i < 6; i++)
+            {
+                // Use rejection sampling to ensure uniform distribution
+                int value;
+                do
+                {
+                    value = randomBytes[i];
+                    if (value >= 256 - (256 % chars.Length))
+                    {
+                        // Rejection sampling: get a new byte if this would introduce bias
+                        var newByte = new byte[1];
+                        rng.GetBytes(newByte);
+                        randomBytes[i] = newByte[0];
+                    }
+                    else
+                    {
+                        break;
+                    }
+                } while (true);
+                
+                code[i] = chars[value % chars.Length];
+            }
         }
         
         return new string(code);
