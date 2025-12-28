@@ -214,7 +214,13 @@ public class AuthService : IAuthService
 
     private string GetJwtSecret()
     {
-        return _configuration["Jwt:Secret"] ?? "snapory-super-secret-key-change-in-production-12345!";
+        var secret = _configuration["Jwt:Secret"];
+        if (string.IsNullOrWhiteSpace(secret))
+        {
+            throw new InvalidOperationException("JWT secret is not configured. Please set 'Jwt:Secret' in the application configuration.");
+        }
+
+        return secret;
     }
 
     private static string HashPassword(string password)
