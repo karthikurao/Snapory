@@ -54,24 +54,7 @@ export default function QRCodeDisplay({ eventCode, eventName, size = 200 }: QRCo
       showCopyMessage(successMsg, 'success');
     } catch (error) {
       console.error('Failed to copy link using navigator.clipboard:', error);
-      // Fallback for older browsers
-      try {
-        const textArea = document.createElement('textarea');
-        textArea.value = eventUrl;
-        document.body.appendChild(textArea);
-        textArea.select();
-        const success = document.execCommand('copy');
-        document.body.removeChild(textArea);
-        
-        if (success) {
-          showCopyMessage(successMsg, 'success');
-        } else {
-          showCopyMessage(errorMsg, 'error', 5000);
-        }
-      } catch (fallbackError) {
-        console.error('Fallback clipboard copy failed:', fallbackError);
-        showCopyMessage(errorMsg, 'error', 5000);
-      }
+      showCopyMessage(errorMsg, 'error', 5000);
     }
   };
 
