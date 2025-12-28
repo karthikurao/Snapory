@@ -1,15 +1,42 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File, HTTPException
 from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel
 from app.models.schemas import HealthResponse
 from app.services.redis_service import redis_service
+from app.services.face_service import face_service
+from app.services.photo_processor import photo_processor
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+class FaceDetectionResponse(BaseModel):
+    face_count: int
+    encodings: list[str]
+    locations: list[dict]
+
+
+class SelfieEncodingResponse(BaseModel):
+    success: bool
+    encoding: Optional[str] = None
+    message: str
+
+
+class FaceMatchRequest(BaseModel):
+    selfie_encoding: str
+    photos: list[dict]  # Each with photo_id and face_encodings
+
+
+class FaceMatchResponse(BaseModel):
+    matches: list[dict]
+    total_searched: int
+
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
-    """
-    Health check endpoint
-    """
+    """Health check endpoint"""
     redis_connected = redis_service.is_connected()
     queue_length = redis_service.get_queue_length() if redis_connected else 0
     
@@ -20,13 +47,158 @@ async def health_check():
         queue_length=queue_length
     )
 
+
 @router.get("/")
 async def root():
-    """
-    Root endpoint
-    """
+    """Root endpoint"""
     return {
         "service": "Snapory AI Service",
         "version": "1.0.0",
-        "status": "running"
+        "status": "running",
+        "face_recognition_available": face_service.is_available
     }
+
+
+@router.post("/detect-faces", response_model=FaceDetectionResponse)
+async def detect_faces(file: UploadFile = File(...)):
+    """
+    Detect faces in an uploaded photo.
+    Returns face count and encoded face data for each detected face.
+    """
+    try:
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Validate specific image formats
+        allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Unsupported image format. Allowed formats: {', '.join(allowed_types)}"
+            )
+        
+        # Read image data
+        image_data = await file.read()
+        
+        # Validate file size (10MB max)
+        max_size = 10 * 1024 * 1024  # 10MB
+        if len(image_data) > max_size:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"File size exceeds maximum limit of {max_size / (1024 * 1024):.0f}MB"
+            )
+        
+        # Detect faces
+        result = face_service.detect_faces(image_data)
+        
+        logger.info(f"Detected {result['face_count']} faces in uploaded image")
+        
+        return FaceDetectionResponse(
+            face_count=result["face_count"],
+            encodings=result["encodings"],
+            locations=result["locations"]
+        )
+        
+    except Exception as e:
+        logger.error(f"Face detection error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/encode-selfie", response_model=SelfieEncodingResponse)
+async def encode_selfie(file: UploadFile = File(...)):
+    """
+    Process a selfie and return the face encoding for matching.
+    """
+    try:
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Validate specific image formats
+        allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Unsupported image format. Allowed formats: {', '.join(allowed_types)}"
+            )
+        
+        # Read image data
+        image_data = await file.read()
+        
+        # Validate file size (10MB max)
+        max_size = 10 * 1024 * 1024  # 10MB
+        if len(image_data) > max_size:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"File size exceeds maximum limit of {max_size / (1024 * 1024):.0f}MB"
+            )
+        
+        # Encode selfie
+        encoding = face_service.encode_selfie(image_data)
+        
+        if encoding is None:
+            return SelfieEncodingResponse(
+                success=False,
+                encoding=None,
+                message="No face detected in the selfie. Please try again with a clearer photo."
+            )
+        
+        return SelfieEncodingResponse(
+            success=True,
+            encoding=encoding,
+            message="Face encoded successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Selfie encoding error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/match-faces", response_model=FaceMatchResponse)
+async def match_faces(request: FaceMatchRequest):
+    """
+    Match a selfie encoding against photos to find all photos containing the person.
+    """
+    try:
+        matches = face_service.find_matching_photos(
+            selfie_encoding=request.selfie_encoding,
+            photos=request.photos
+        )
+        
+        logger.info(f"Found {len(matches)} matching photos out of {len(request.photos)}")
+        
+        return FaceMatchResponse(
+            matches=matches,
+            total_searched=len(request.photos)
+        )
+        
+    except Exception as e:
+        logger.error(f"Face matching error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/analyze-photo")
+async def analyze_photo(file: UploadFile = File(...)):
+    """
+    Analyze a photo for metadata and basic properties.
+    """
+    try:
+        if not file.content_type or not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        image_data = await file.read()
+        metadata = photo_processor.analyze_photo(image_data)
+        
+        # Also detect faces
+        face_result = face_service.detect_faces(image_data)
+        
+        return {
+            "metadata": metadata,
+            "faces": face_result
+        }
+        
+    except Exception as e:
+        logger.error(f"Photo analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
