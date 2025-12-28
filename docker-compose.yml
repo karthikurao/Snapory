@@ -102,33 +102,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # MinIO for local S3-compatible storage (optional, for local development)
-  # Uncomment to use MinIO instead of OVH S3
-  # minio:
-  #   image: minio/minio:latest
-  #   container_name: snapory-minio
-  #   ports:
-  #     - "9000:9000"
-  #     - "9001:9001"
-  #   environment:
-  #     MINIO_ROOT_USER: minioadmin
-  #     MINIO_ROOT_PASSWORD: minioadmin
-  #   command: server /data --console-address ":9001"
-  #   volumes:
-  #     - minio-data:/data
-  #   networks:
-  #     - snapory-network
-  #   restart: unless-stopped
-
-networks:
-  snapory-network:
-    driver: bridge
-
-volumes:
-  redis-data:
-    driver: local
-  # minio-data:
-  #   driver: local
   snapory-ingest:
     build:
       context: .
@@ -145,6 +118,8 @@ volumes:
       - S3__SecretKey=${S3_SECRET_KEY}
     volumes:
       - snapory-data:/data
+    networks:
+      - snapory-network
     restart: unless-stopped
 
   # MinIO for local S3-compatible storage (optional, for local development)
@@ -159,8 +134,23 @@ volumes:
     command: server /data --console-address ":9001"
     volumes:
       - minio-data:/data
+    networks:
+      - snapory-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  snapory-network:
+    driver: bridge
 
 volumes:
+  redis-data:
+    driver: local
   snapory-data:
+    driver: local
   minio-data:
+    driver: local

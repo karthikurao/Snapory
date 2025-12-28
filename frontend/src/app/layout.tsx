@@ -4,8 +4,10 @@ import { AuthProvider } from '@/lib/auth-context';
 import Navigation from '@/components/Navigation';
 
 export const metadata: Metadata = {
-  title: 'Snapory - Real-time Event Photos',
-  description: 'Upload and share event photos instantly',
+  title: 'Snapory - Instant Event Photos for Every Guest',
+  description: 'Guests see their own event photos instantly by scanning a QR code. AI automatically finds their photos. No app needed.',
+  keywords: ['event photos', 'wedding photography', 'face recognition', 'QR code photos', 'instant photo delivery'],
+  authors: [{ name: 'Snapory' }],
 };
 
 export default function RootLayout({
@@ -24,3 +26,4 @@ export default function RootLayout({
     </html>
   );
 }
+

@@ -13,6 +13,7 @@ class FaceService:
     
     def __init__(self):
         self.tolerance = 0.6  # Lower = more strict matching
+        self.is_available = True
     
     async def download_image(self, image_url: str) -> Optional[np.ndarray]:
         """Download image from URL and convert to numpy array."""
