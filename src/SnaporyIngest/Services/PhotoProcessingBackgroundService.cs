@@ -151,21 +151,18 @@ public class PhotoProcessingBackgroundService : BackgroundService
         // Store face encodings
         photo.FaceCount = faceResult.FaceCount;
 
-        foreach (var face in faceResult.Faces)
+        var photoFaces = faceResult.Faces.Select(face => new PhotoFace
         {
-            var photoFace = new PhotoFace
-            {
-                PhotoId = photo.PhotoId,
-                FaceIndex = face.Index,
-                FaceEncoding = System.Text.Json.JsonSerializer.Serialize(face.Encoding),
-                BoundingBoxTop = face.BoundingBox.Top,
-                BoundingBoxRight = face.BoundingBox.Right,
-                BoundingBoxBottom = face.BoundingBox.Bottom,
-                BoundingBoxLeft = face.BoundingBox.Left
-            };
+            PhotoId = photo.PhotoId,
+            FaceIndex = face.Index,
+            FaceEncoding = System.Text.Json.JsonSerializer.Serialize(face.Encoding),
+            BoundingBoxTop = face.BoundingBox.Top,
+            BoundingBoxRight = face.BoundingBox.Right,
+            BoundingBoxBottom = face.BoundingBox.Bottom,
+            BoundingBoxLeft = face.BoundingBox.Left
+        });
 
-            context.PhotoFaces.Add(photoFace);
-        }
+        context.PhotoFaces.AddRange(photoFaces);
 
         photo.ProcessingStatus = PhotoProcessingStatus.Completed;
         photo.ProcessedAt = DateTime.UtcNow;
