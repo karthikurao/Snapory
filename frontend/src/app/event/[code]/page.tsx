@@ -95,10 +95,14 @@ export default function GuestAccessPage() {
     setStep('photos');
   };
 
-  // Cleanup camera on unmount
+  // Cleanup camera on unmount or when navigating away
   useEffect(() => {
     return () => {
-      stopCamera();
+      // Cleanup camera stream when component unmounts
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
     };
   }, []);
 
