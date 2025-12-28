@@ -2,7 +2,6 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel
 from app.models.schemas import HealthResponse
 from app.services.redis_service import redis_service
 from app.services.face_service import face_service
