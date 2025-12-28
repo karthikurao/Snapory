@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 
 namespace SnaporyIngest.Models;
 
+using System.Security.Cryptography;
+
 public class Event
 {
     public string EventId { get; set; } = Guid.NewGuid().ToString();
@@ -22,23 +24,17 @@ public class Event
     public User? User { get; set; }
     public ICollection<Photo> Photos { get; set; } = new List<Photo>();
     public ICollection<GuestSession> GuestSessions { get; set; } = new List<GuestSession>();
+    public ICollection<GuestFace> GuestFaces { get; set; } = new List<GuestFace>();
     
     private static string GenerateAccessCode()
     {
+        // Generate a 6-character alphanumeric code using cryptographically secure random
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         var code = new char[6];
-        var buffer = new byte[1];
         
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < code.Length; i++)
         {
-            byte randomByte;
-            do
-            {
-                RandomNumberGenerator.Fill(buffer);
-                randomByte = buffer[0];
-            } while (randomByte >= 256 - (256 % chars.Length));
-            
-            code[i] = chars[randomByte % chars.Length];
+            code[i] = chars[RandomNumberGenerator.GetInt32(chars.Length)];
         }
         
         return new string(code);
