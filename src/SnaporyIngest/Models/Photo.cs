@@ -28,12 +28,15 @@ public class Photo
                 // Validate that it's valid JSON
                 try
                 {
-                    JsonDocument.Parse(value);
+                    using (JsonDocument.Parse(value))
+                    {
+                        // JSON is valid
+                    }
                     _faceEncodings = value;
                 }
                 catch (JsonException)
                 {
-                    throw new ArgumentException("FaceEncodings must be valid JSON", nameof(FaceEncodings));
+                    throw new ArgumentException("FaceEncodings must be valid JSON", nameof(value));
                 }
             }
             else

@@ -13,6 +13,11 @@ export default function QRCodeDisplay({ eventCode, eventName, size = 200 }: QRCo
   const eventUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/event/${eventCode}`;
   const [copyMessage, setCopyMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  const showCopyMessage = (text: string, type: 'success' | 'error', duration: number = 3000) => {
+    setCopyMessage({ text, type });
+    setTimeout(() => setCopyMessage(null), duration);
+  };
+
   const downloadQRCode = () => {
     const svg = document.getElementById('event-qr-code');
     if (!svg) return;
@@ -41,10 +46,12 @@ export default function QRCodeDisplay({ eventCode, eventName, size = 200 }: QRCo
   };
 
   const copyLink = async () => {
+    const successMsg = 'Link copied to clipboard!';
+    const errorMsg = `Failed to copy link. Please copy it manually:\n${eventUrl}`;
+    
     try {
       await navigator.clipboard.writeText(eventUrl);
-      setCopyMessage({ text: 'Link copied to clipboard!', type: 'success' });
-      setTimeout(() => setCopyMessage(null), 3000);
+      showCopyMessage(successMsg, 'success');
     } catch (error) {
       console.error('Failed to copy link using navigator.clipboard:', error);
       // Fallback for older browsers
@@ -57,16 +64,13 @@ export default function QRCodeDisplay({ eventCode, eventName, size = 200 }: QRCo
         document.body.removeChild(textArea);
         
         if (success) {
-          setCopyMessage({ text: 'Link copied to clipboard!', type: 'success' });
-          setTimeout(() => setCopyMessage(null), 3000);
+          showCopyMessage(successMsg, 'success');
         } else {
-          setCopyMessage({ text: `Failed to copy link. Please copy it manually:\n${eventUrl}`, type: 'error' });
-          setTimeout(() => setCopyMessage(null), 5000);
+          showCopyMessage(errorMsg, 'error', 5000);
         }
       } catch (fallbackError) {
         console.error('Fallback clipboard copy failed:', fallbackError);
-        setCopyMessage({ text: `Failed to copy link. Please copy it manually:\n${eventUrl}`, type: 'error' });
-        setTimeout(() => setCopyMessage(null), 5000);
+        showCopyMessage(errorMsg, 'error', 5000);
       }
     }
   };
