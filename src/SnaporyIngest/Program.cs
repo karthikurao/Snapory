@@ -3,6 +3,7 @@ using Amazon.Runtime;
 using Microsoft.EntityFrameworkCore;
 using SnaporyIngest.Data;
 using SnaporyIngest.Services;
+using SnaporyIngest.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,19 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
+
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(
+                builder.Configuration["Cors:Origins"]?.Split(',') ?? new[] { "http://localhost:3000", "http://localhost:3001" })
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
 
 // Configure database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
@@ -31,6 +45,18 @@ var credentials = new BasicAWSCredentials(accessKey, secretKey);
 builder.Services.AddSingleton<IAmazonS3>(new AmazonS3Client(credentials, s3Config));
 builder.Services.AddScoped<IS3StorageService, S3StorageService>();
 
+// Register authentication services
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Register AI processing services
+builder.Services.AddHttpClient<IAiProcessingService, AiProcessingService>();
+
+// Register thumbnail service
+builder.Services.AddScoped<IThumbnailService, ThumbnailService>();
+
+// Register background processing service
+builder.Services.AddHostedService<PhotoProcessingBackgroundService>();
+
 // Configure logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -50,6 +76,11 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+app.UseCors("AllowFrontend");
+
+// Add JWT authentication middleware
+app.UseMiddleware<JwtMiddleware>();
 
 app.UseRouting();
 app.MapControllers();

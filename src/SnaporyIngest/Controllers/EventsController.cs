@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SnaporyIngest.Data;
 using SnaporyIngest.Models;
 using SnaporyIngest.Services;
+using SnaporyIngest.Middleware;
 
 namespace SnaporyIngest.Controllers;
 
@@ -23,9 +24,19 @@ public class EventsController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// Create a new event (requires authentication)
+    /// </summary>
     [HttpPost]
+    [Authorize]
     public async Task<ActionResult<CreateEventResponse>> CreateEvent([FromBody] CreateEventRequest request)
     {
+        var userId = HttpContext.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest(new { error = "Event name is required" });
@@ -33,25 +44,68 @@ public class EventsController : ControllerBase
 
         var newEvent = new Event
         {
+            UserId = userId,
             Name = request.Name,
-            Description = request.Description
+            Description = request.Description,
+            EventDate = request.EventDate,
+            Location = request.Location
         };
 
         _context.Events.Add(newEvent);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Created event: {EventId} - {EventName}", newEvent.EventId, newEvent.Name);
+        _logger.LogInformation("Created event: {EventId} - {EventName} by user {UserId}", newEvent.EventId, newEvent.Name, userId);
 
         return CreatedAtAction(nameof(GetEvent), new { eventId = newEvent.EventId }, new CreateEventResponse
         {
             EventId = newEvent.EventId,
             UploadToken = newEvent.UploadToken,
+            GuestAccessCode = newEvent.GuestAccessCode,
             CreatedAt = newEvent.CreatedAt
         });
     }
 
+    /// <summary>
+    /// Get all events for the authenticated user
+    /// </summary>
+    [HttpGet]
+    [Authorize]
+    public async Task<ActionResult<List<EventSummary>>> GetMyEvents()
+    {
+        var userId = HttpContext.GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var events = await _context.Events
+            .Where(e => e.UserId == userId)
+            .OrderByDescending(e => e.CreatedAt)
+            .Select(e => new EventSummary
+            {
+                EventId = e.EventId,
+                Name = e.Name,
+                Description = e.Description,
+                EventDate = e.EventDate,
+                Location = e.Location,
+                GuestAccessCode = e.GuestAccessCode,
+                TotalPhotos = e.TotalPhotos,
+                ProcessedPhotos = e.ProcessedPhotos,
+                TotalFacesDetected = e.TotalFacesDetected,
+                IsProcessingComplete = e.IsProcessingComplete,
+                IsActive = e.IsActive,
+                CreatedAt = e.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(events);
+    }
+
+    /// <summary>
+    /// Get a specific event (requires ownership or valid upload token)
+    /// </summary>
     [HttpGet("{eventId}")]
-    public async Task<ActionResult<Event>> GetEvent(string eventId)
+    public async Task<ActionResult<EventDetailResponse>> GetEvent(string eventId)
     {
         var eventEntity = await _context.Events
             .Include(e => e.Photos)
@@ -62,9 +116,112 @@ public class EventsController : ControllerBase
             return NotFound(new { error = "Event not found" });
         }
 
-        return Ok(eventEntity);
+        // Check authorization - either owner or has valid upload token
+        var userId = HttpContext.GetUserId();
+        var uploadToken = Request.Headers["X-Upload-Token"].FirstOrDefault();
+
+        if (userId != eventEntity.UserId && uploadToken != eventEntity.UploadToken)
+        {
+            return Unauthorized(new { error = "You don't have access to this event" });
+        }
+
+        var photos = new List<PhotoDetail>();
+        foreach (var photo in eventEntity.Photos.OrderByDescending(p => p.UploadedAt))
+        {
+            var thumbnailUrl = !string.IsNullOrEmpty(photo.ThumbnailS3Key)
+                ? await _storageService.GetPresignedUrlAsync(photo.ThumbnailS3Key, TimeSpan.FromHours(1))
+                : await _storageService.GetPresignedUrlAsync(photo.S3Key, TimeSpan.FromHours(1));
+
+            photos.Add(new PhotoDetail
+            {
+                PhotoId = photo.PhotoId,
+                FileName = photo.FileName,
+                FileSize = photo.FileSize,
+                ThumbnailUrl = thumbnailUrl,
+                ProcessingStatus = photo.ProcessingStatus.ToString(),
+                FaceCount = photo.FaceCount,
+                UploadedAt = photo.UploadedAt
+            });
+        }
+
+        return Ok(new EventDetailResponse
+        {
+            EventId = eventEntity.EventId,
+            Name = eventEntity.Name,
+            Description = eventEntity.Description,
+            EventDate = eventEntity.EventDate,
+            Location = eventEntity.Location,
+            GuestAccessCode = eventEntity.GuestAccessCode,
+            UploadToken = userId == eventEntity.UserId ? eventEntity.UploadToken : null,
+            TotalPhotos = eventEntity.TotalPhotos,
+            ProcessedPhotos = eventEntity.ProcessedPhotos,
+            TotalFacesDetected = eventEntity.TotalFacesDetected,
+            IsProcessingComplete = eventEntity.IsProcessingComplete,
+            IsActive = eventEntity.IsActive,
+            CreatedAt = eventEntity.CreatedAt,
+            Photos = photos
+        });
     }
 
+    /// <summary>
+    /// Update event settings
+    /// </summary>
+    [HttpPut("{eventId}")]
+    [Authorize]
+    public async Task<ActionResult> UpdateEvent(string eventId, [FromBody] UpdateEventRequest request)
+    {
+        var userId = HttpContext.GetUserId();
+        var eventEntity = await _context.Events.FirstOrDefaultAsync(e => e.EventId == eventId && e.UserId == userId);
+
+        if (eventEntity == null)
+        {
+            return NotFound(new { error = "Event not found" });
+        }
+
+        if (!string.IsNullOrEmpty(request.Name))
+            eventEntity.Name = request.Name;
+        if (request.Description != null)
+            eventEntity.Description = request.Description;
+        if (request.EventDate.HasValue)
+            eventEntity.EventDate = request.EventDate;
+        if (request.Location != null)
+            eventEntity.Location = request.Location;
+        if (request.IsActive.HasValue)
+            eventEntity.IsActive = request.IsActive.Value;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Event updated successfully" });
+    }
+
+    /// <summary>
+    /// Regenerate guest access code
+    /// </summary>
+    [HttpPost("{eventId}/regenerate-code")]
+    [Authorize]
+    public async Task<ActionResult> RegenerateAccessCode(string eventId)
+    {
+        var userId = HttpContext.GetUserId();
+        var eventEntity = await _context.Events.FirstOrDefaultAsync(e => e.EventId == eventId && e.UserId == userId);
+
+        if (eventEntity == null)
+        {
+            return NotFound(new { error = "Event not found" });
+        }
+
+        // Generate new code
+        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        var random = new Random();
+        eventEntity.GuestAccessCode = new string(Enumerable.Range(0, 6).Select(_ => chars[random.Next(chars.Length)]).ToArray());
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { guestAccessCode = eventEntity.GuestAccessCode });
+    }
+
+    /// <summary>
+    /// Upload photos to an event
+    /// </summary>
     [HttpPost("{eventId}/photos")]
     public async Task<ActionResult<UploadPhotoResponse>> UploadPhotos(
         string eventId,
@@ -78,7 +235,9 @@ public class EventsController : ControllerBase
             return NotFound(new { error = "Event not found" });
         }
 
-        if (string.IsNullOrWhiteSpace(uploadToken) || eventEntity.UploadToken != uploadToken)
+        // Check authorization - either owner or valid upload token
+        var userId = HttpContext.GetUserId();
+        if (userId != eventEntity.UserId && (string.IsNullOrWhiteSpace(uploadToken) || eventEntity.UploadToken != uploadToken))
         {
             return Unauthorized(new { error = "Invalid upload token" });
         }
@@ -122,7 +281,8 @@ public class EventsController : ControllerBase
                     FileName = file.FileName,
                     S3Key = s3Key,
                     FileSize = file.Length,
-                    ContentType = file.ContentType
+                    ContentType = file.ContentType,
+                    ProcessingStatus = PhotoProcessingStatus.Pending
                 };
 
                 uploadedPhotos.Add(photo);
@@ -152,8 +312,160 @@ public class EventsController : ControllerBase
             }
         }
 
+        // Update event photo count
+        eventEntity.TotalPhotos = await _context.Photos.CountAsync(p => p.EventId == eventId) + uploadedPhotos.Count;
+        eventEntity.IsProcessingComplete = false;
+
         await _context.SaveChangesAsync();
 
         return Ok(response);
     }
+
+    /// <summary>
+    /// Get photo download URL
+    /// </summary>
+    [HttpGet("{eventId}/photos/{photoId}/download")]
+    [Authorize]
+    public async Task<ActionResult> DownloadPhoto(string eventId, string photoId)
+    {
+        var userId = HttpContext.GetUserId();
+        var eventEntity = await _context.Events.FirstOrDefaultAsync(e => e.EventId == eventId && e.UserId == userId);
+
+        if (eventEntity == null)
+        {
+            return NotFound(new { error = "Event not found" });
+        }
+
+        var photo = await _context.Photos.FirstOrDefaultAsync(p => p.PhotoId == photoId && p.EventId == eventId);
+        if (photo == null)
+        {
+            return NotFound(new { error = "Photo not found" });
+        }
+
+        var downloadUrl = await _storageService.GetPresignedUrlAsync(photo.S3Key, TimeSpan.FromHours(4));
+        return Ok(new { downloadUrl, fileName = photo.FileName });
+    }
+
+    /// <summary>
+    /// Delete a photo
+    /// </summary>
+    [HttpDelete("{eventId}/photos/{photoId}")]
+    [Authorize]
+    public async Task<ActionResult> DeletePhoto(string eventId, string photoId)
+    {
+        var userId = HttpContext.GetUserId();
+        var eventEntity = await _context.Events.FirstOrDefaultAsync(e => e.EventId == eventId && e.UserId == userId);
+
+        if (eventEntity == null)
+        {
+            return NotFound(new { error = "Event not found" });
+        }
+
+        var photo = await _context.Photos
+            .Include(p => p.Faces)
+            .Include(p => p.GuestMatches)
+            .FirstOrDefaultAsync(p => p.PhotoId == photoId && p.EventId == eventId);
+
+        if (photo == null)
+        {
+            return NotFound(new { error = "Photo not found" });
+        }
+
+        // Delete from S3
+        await _storageService.DeletePhotoAsync(photo.S3Key);
+        if (!string.IsNullOrEmpty(photo.ThumbnailS3Key))
+        {
+            await _storageService.DeletePhotoAsync(photo.ThumbnailS3Key);
+        }
+
+        // Delete from database
+        _context.PhotoFaces.RemoveRange(photo.Faces);
+        _context.GuestPhotoMatches.RemoveRange(photo.GuestMatches);
+        _context.Photos.Remove(photo);
+        
+        eventEntity.TotalPhotos = Math.Max(0, eventEntity.TotalPhotos - 1);
+        
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Photo deleted successfully" });
+    }
+
+    /// <summary>
+    /// Get event statistics
+    /// </summary>
+    [HttpGet("{eventId}/stats")]
+    [Authorize]
+    public async Task<ActionResult> GetEventStats(string eventId)
+    {
+        var userId = HttpContext.GetUserId();
+        var eventEntity = await _context.Events
+            .Include(e => e.Photos)
+            .Include(e => e.GuestSessions)
+            .FirstOrDefaultAsync(e => e.EventId == eventId && e.UserId == userId);
+
+        if (eventEntity == null)
+        {
+            return NotFound(new { error = "Event not found" });
+        }
+
+        var stats = new
+        {
+            totalPhotos = eventEntity.TotalPhotos,
+            processedPhotos = eventEntity.ProcessedPhotos,
+            pendingPhotos = eventEntity.Photos.Count(p => p.ProcessingStatus == PhotoProcessingStatus.Pending),
+            failedPhotos = eventEntity.Photos.Count(p => p.ProcessingStatus == PhotoProcessingStatus.Failed),
+            totalFaces = eventEntity.TotalFacesDetected,
+            totalGuests = eventEntity.GuestSessions.Count,
+            matchedGuests = eventEntity.GuestSessions.Count(s => s.MatchedPhotoCount > 0),
+            totalDownloads = await _context.GuestPhotoMatches
+                .Where(m => m.Session!.EventId == eventId && m.IsDownloaded)
+                .CountAsync(),
+            isProcessingComplete = eventEntity.IsProcessingComplete
+        };
+
+        return Ok(stats);
+    }
+}
+
+// Additional request/response models
+public class UpdateEventRequest
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public DateTime? EventDate { get; set; }
+    public string? Location { get; set; }
+    public bool? IsActive { get; set; }
+}
+
+public class EventSummary
+{
+    public string EventId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public DateTime? EventDate { get; set; }
+    public string? Location { get; set; }
+    public string GuestAccessCode { get; set; } = string.Empty;
+    public int TotalPhotos { get; set; }
+    public int ProcessedPhotos { get; set; }
+    public int TotalFacesDetected { get; set; }
+    public bool IsProcessingComplete { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class EventDetailResponse : EventSummary
+{
+    public string? UploadToken { get; set; }
+    public List<PhotoDetail> Photos { get; set; } = new();
+}
+
+public class PhotoDetail
+{
+    public string PhotoId { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public string ThumbnailUrl { get; set; } = string.Empty;
+    public string ProcessingStatus { get; set; } = string.Empty;
+    public int FaceCount { get; set; }
+    public DateTime UploadedAt { get; set; }
 }

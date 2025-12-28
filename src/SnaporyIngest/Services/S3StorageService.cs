@@ -21,7 +21,25 @@ public class S3StorageService : IS3StorageService
     public async Task<string> UploadPhotoAsync(Stream fileStream, string fileName, string contentType, CancellationToken cancellationToken = default)
     {
         var s3Key = $"photos/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid()}/{fileName}";
-        
+        return await UploadToS3Async(fileStream, s3Key, contentType, cancellationToken);
+    }
+
+    public async Task<string> UploadSelfieAsync(Stream fileStream, string sessionId, string contentType, CancellationToken cancellationToken = default)
+    {
+        var extension = contentType.Contains("png") ? "png" : "jpg";
+        var s3Key = $"selfies/{sessionId}/selfie.{extension}";
+        return await UploadToS3Async(fileStream, s3Key, contentType, cancellationToken);
+    }
+
+    public async Task<string> UploadThumbnailAsync(Stream fileStream, string photoId, string contentType, CancellationToken cancellationToken = default)
+    {
+        var extension = contentType.Contains("png") ? "png" : "jpg";
+        var s3Key = $"thumbnails/{DateTime.UtcNow:yyyy/MM}/{photoId}.{extension}";
+        return await UploadToS3Async(fileStream, s3Key, contentType, cancellationToken);
+    }
+
+    private async Task<string> UploadToS3Async(Stream fileStream, string s3Key, string contentType, CancellationToken cancellationToken)
+    {
         var maxRetries = 3;
         var retryCount = 0;
         
@@ -42,7 +60,7 @@ public class S3StorageService : IS3StorageService
                 
                 if ((int)response.HttpStatusCode >= 200 && (int)response.HttpStatusCode < 300)
                 {
-                    _logger.LogInformation("Successfully uploaded photo to S3: {S3Key}", s3Key);
+                    _logger.LogInformation("Successfully uploaded to S3: {S3Key}", s3Key);
                     return s3Key;
                 }
                 
@@ -51,22 +69,23 @@ public class S3StorageService : IS3StorageService
             catch (Exception ex)
             {
                 retryCount++;
-                _logger.LogWarning(ex, "Failed to upload photo to S3 (attempt {RetryCount}/{MaxRetries}): {S3Key}", 
+                _logger.LogWarning(ex, "Failed to upload to S3 (attempt {RetryCount}/{MaxRetries}): {S3Key}", 
                     retryCount, maxRetries, s3Key);
                 
                 if (retryCount >= maxRetries)
                 {
-                    _logger.LogError(ex, "Failed to upload photo to S3 after {MaxRetries} attempts: {S3Key}", 
+                    _logger.LogError(ex, "Failed to upload to S3 after {MaxRetries} attempts: {S3Key}", 
                         maxRetries, s3Key);
                     throw;
                 }
                 
                 await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, retryCount)), cancellationToken);
-                fileStream.Position = 0;
+                if (fileStream.CanSeek)
+                    fileStream.Position = 0;
             }
         }
         
-        throw new Exception("Failed to upload photo to S3 after exhausting all retries");
+        throw new Exception("Failed to upload to S3 after exhausting all retries");
     }
 
     public async Task<bool> DeletePhotoAsync(string s3Key, CancellationToken cancellationToken = default)
@@ -80,13 +99,55 @@ public class S3StorageService : IS3StorageService
             };
 
             await _s3Client.DeleteObjectAsync(request, cancellationToken);
-            _logger.LogInformation("Successfully deleted photo from S3: {S3Key}", s3Key);
+            _logger.LogInformation("Successfully deleted from S3: {S3Key}", s3Key);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete photo from S3: {S3Key}", s3Key);
+            _logger.LogError(ex, "Failed to delete from S3: {S3Key}", s3Key);
             return false;
+        }
+    }
+
+    public async Task<string> GetPresignedUrlAsync(string s3Key, TimeSpan expiry, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var request = new GetPreSignedUrlRequest
+            {
+                BucketName = _bucketName,
+                Key = s3Key,
+                Expires = DateTime.UtcNow.Add(expiry),
+                Verb = HttpVerb.GET
+            };
+
+            var url = await Task.Run(() => _s3Client.GetPreSignedURL(request), cancellationToken);
+            return url;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate presigned URL for: {S3Key}", s3Key);
+            throw;
+        }
+    }
+
+    public async Task<Stream?> GetPhotoStreamAsync(string s3Key, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var request = new GetObjectRequest
+            {
+                BucketName = _bucketName,
+                Key = s3Key
+            };
+
+            var response = await _s3Client.GetObjectAsync(request, cancellationToken);
+            return response.ResponseStream;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get photo stream from S3: {S3Key}", s3Key);
+            return null;
         }
     }
 }
