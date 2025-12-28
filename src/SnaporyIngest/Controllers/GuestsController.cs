@@ -68,7 +68,7 @@ public class GuestsController : ControllerBase
     /// Upload selfie for face matching
     /// </summary>
     [HttpPost("{sessionId}/selfie")]
-    public async Task<ActionResult<SelfiUploadResponse>> UploadSelfie(
+    public async Task<ActionResult<SelfieUploadResponse>> UploadSelfie(
         string sessionId, 
         [FromForm] IFormFile selfie)
     {
@@ -118,7 +118,7 @@ public class GuestsController : ControllerBase
 
             _logger.LogInformation("Selfie uploaded for session: {SessionId}", sessionId);
 
-            return Ok(new SelfiUploadResponse
+            return Ok(new SelfieUploadResponse
             {
                 SessionId = sessionId,
                 Status = "processing",
@@ -379,7 +379,7 @@ public class GuestJoinResponse
     public bool IsProcessingComplete { get; set; }
 }
 
-public class SelfiUploadResponse
+public class SelfieUploadResponse
 {
     public string SessionId { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
