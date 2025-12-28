@@ -60,7 +60,7 @@ export default function PhotoUploader() {
     setUploadResult(null);
 
     try {
-      const result = await apiClient.uploadPhoto(selectedFile, eventId || undefined);
+      const result = await apiClient.uploadPhotos(eventId || '', [selectedFile]);
       setUploadResult(result);
       setSelectedFile(null);
       setPreviewUrl(null);
@@ -163,7 +163,7 @@ export default function PhotoUploader() {
                 borderRadius: 'calc(var(--radius) - 2px)'
               }}>
                 <span style={{ color: 'white', fontSize: '0.75rem', fontWeight: 500 }}>
-                  {selectedFile?.name.length > 20 ? selectedFile?.name.substring(0, 20) + '...' : selectedFile?.name}
+                  {selectedFile && selectedFile.name.length > 20 ? selectedFile.name.substring(0, 20) + '...' : selectedFile?.name}
                 </span>
                 <button 
                   onClick={clearSelection}
@@ -325,34 +325,10 @@ export default function PhotoUploader() {
             </svg>
           </div>
           <div style={{ color: 'var(--success-foreground)', fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>Upload Successful!</div>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--success-foreground)', marginBottom: '1rem' }}>Your photo has been added to the event.</p>
-          <a 
-            href={uploadResult.storageUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0.5rem 1rem',
-              backgroundColor: 'white',
-              border: '1px solid var(--success)',
-              borderRadius: 'var(--radius)',
-              fontSize: '0.8125rem',
-              fontWeight: 500,
-              color: 'var(--success-foreground)',
-              textDecoration: 'none',
-              boxShadow: 'var(--shadow-sm)',
-              transition: 'all 0.2s'
-            }}
-          >
-            View Photo
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.375rem' }}>
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-              <polyline points="15 3 21 3 21 9"/>
-              <line x1="10" y1="14" x2="21" y2="3"/>
-            </svg>
-          </a>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--success-foreground)', marginBottom: '1rem' }}>
+            Your photo has been added to the event.
+            {uploadResult.photos.length > 0 && ` (Photo ID: ${uploadResult.photos[0].photoId.substring(0, 8)}...)`}
+          </p>
         </div>
       )}
 

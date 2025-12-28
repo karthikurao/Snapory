@@ -1,11 +1,7 @@
 namespace SnaporyIngest.Models;
 
-using System.Text.Json;
-
 public class Photo
 {
-    private string? _faceEncodings;
-    
     public string PhotoId { get; set; } = Guid.NewGuid().ToString();
     public string EventId { get; set; } = string.Empty;
     public string FileName { get; set; } = string.Empty;
