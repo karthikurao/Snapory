@@ -4,7 +4,6 @@ Uses face_recognition library for face detection and encoding.
 """
 
 import base64
-import json
 import logging
 from io import BytesIO
 from typing import Optional
