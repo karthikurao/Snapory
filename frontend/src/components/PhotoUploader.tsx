@@ -60,7 +60,7 @@ export default function PhotoUploader() {
     setUploadResult(null);
 
     try {
-      const result = await apiClient.uploadPhoto(selectedFile, eventId || undefined);
+      const result = await apiClient.uploadPhotos(eventId || '', [selectedFile]);
       setUploadResult(result);
       setSelectedFile(null);
       setPreviewUrl(null);
@@ -163,6 +163,7 @@ export default function PhotoUploader() {
                 borderRadius: 'calc(var(--radius) - 2px)'
               }}>
                 <span style={{ color: 'white', fontSize: '0.75rem', fontWeight: 500 }}>
+                  {selectedFile && selectedFile.name.length > 20 ? selectedFile.name.substring(0, 20) + '...' : selectedFile?.name}
                   {selectedFile?.name.length > 20 ? selectedFile?.name.substring(0, 20) + '...' : selectedFile?.name}
                 </span>
                 <button 
@@ -325,6 +326,10 @@ export default function PhotoUploader() {
             </svg>
           </div>
           <div style={{ color: 'var(--success-foreground)', fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>Upload Successful!</div>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--success-foreground)', marginBottom: '1rem' }}>
+            Your photo has been added to the event.
+            {uploadResult.photos && uploadResult.photos.length > 0 && ` (Photo ID: ${uploadResult.photos[0].photoId.substring(0, 8)}...)`}
+          </p>
           <p style={{ fontSize: '0.8125rem', color: 'var(--success-foreground)', marginBottom: '1rem' }}>Your photo has been added to the event.</p>
           <a 
             href={uploadResult.storageUrl} 

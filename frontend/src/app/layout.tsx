@@ -1,5 +1,7 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
+import { AuthProvider } from '@/lib/auth-context';
+import Navigation from '@/components/Navigation';
 import Link from 'next/link';
 import ThemeToggle from '@/components/ThemeToggle';
 
@@ -44,6 +46,10 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <AuthProvider>
+          <Navigation />
+          {children}
+        </AuthProvider>
         <nav className="navbar">
           <div className="container navbar-inner">
             <Link href="/" className="navbar-brand">

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from datetime import datetime
+from typing import Optional, List
 from typing import Optional
 from pydantic import BaseModel
 from app.models.schemas import HealthResponse
@@ -12,6 +13,59 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+# URL-based API models (for PR #9 backend integration)
+class ImageUrlRequest(BaseModel):
+    image_url: str
+
+
+class PhotoFaceInput(BaseModel):
+    photo_id: str
+    face_id: str
+    encoding: List[float]
+
+
+class MatchFacesRequest(BaseModel):
+    target_encoding: List[float]
+    photo_faces: List[PhotoFaceInput]
+
+
+class FaceMatch(BaseModel):
+    photo_id: str
+    face_id: str
+    distance: float
+    confidence: float
+
+
+class FaceBoundingBox(BaseModel):
+    top: float
+    right: float
+    bottom: float
+    left: float
+
+
+class DetectedFace(BaseModel):
+    index: int
+    encoding: List[float]
+    bounding_box: FaceBoundingBox
+
+
+class DetectFacesResponse(BaseModel):
+    face_count: int
+    faces: List[DetectedFace]
+    error: Optional[str] = None
+
+
+class EncodeSelfieResponse(BaseModel):
+    face_detected: bool
+    encoding: Optional[List[float]] = None
+    error: Optional[str] = None
+
+
+class MatchFacesResponse(BaseModel):
+    matches: List[FaceMatch]
+
+
+# File upload API models (for PR #7 direct upload approach)
 class FaceDetectionResponse(BaseModel):
     face_count: int
     encodings: list[str]
@@ -55,10 +109,46 @@ async def root():
         "service": "Snapory AI Service",
         "version": "1.0.0",
         "status": "running",
+        "endpoints": [
+            "/api/health",
+            "/api/detect-faces (POST with URL or file upload)",
+            "/api/encode-selfie (POST with URL or file upload)",
+            "/api/match-faces",
+            "/api/analyze-photo"
+        ],
         "face_recognition_available": face_service.is_available
     }
 
 
+# URL-based face detection endpoint (for PR #9 backend)
+@router.post("/detect-faces-url", response_model=DetectFacesResponse)
+async def detect_faces_url(request: ImageUrlRequest):
+    """
+    Detect all faces in an image from a URL and return their encodings.
+    
+    This endpoint is called by the background worker when processing uploaded photos.
+    """
+    result = await face_service.detect_faces_from_url(request.image_url)
+    
+    if "error" in result and result.get("face_count", 0) == 0:
+        # Still return the result, let the caller decide what to do
+        pass
+    
+    return DetectFacesResponse(
+        face_count=result.get("face_count", 0),
+        faces=[
+            DetectedFace(
+                index=f["index"],
+                encoding=f["encoding"],
+                bounding_box=FaceBoundingBox(**f["bounding_box"])
+            )
+            for f in result.get("faces", [])
+        ],
+        error=result.get("error")
+    )
+
+
+# File upload face detection endpoint (for PR #7 direct upload)
 @router.post("/detect-faces", response_model=FaceDetectionResponse)
 async def detect_faces(file: UploadFile = File(...)):
     """
@@ -105,6 +195,25 @@ async def detect_faces(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# URL-based selfie encoding endpoint (for PR #9 backend)
+@router.post("/encode-selfie-url", response_model=EncodeSelfieResponse)
+async def encode_selfie_url(request: ImageUrlRequest):
+    """
+    Encode a single face from a selfie image URL.
+    
+    This endpoint is called when a guest uploads their selfie for matching.
+    Expects exactly one face in the image (will use largest face if multiple).
+    """
+    result = await face_service.encode_selfie_from_url(request.image_url)
+    
+    return EncodeSelfieResponse(
+        face_detected=result.get("face_detected", False),
+        encoding=result.get("encoding"),
+        error=result.get("error")
+    )
+
+
+# File upload selfie encoding endpoint (for PR #7 direct upload)
 @router.post("/encode-selfie", response_model=SelfieEncodingResponse)
 async def encode_selfie(file: UploadFile = File(...)):
     """
@@ -153,6 +262,39 @@ async def encode_selfie(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Selfie encoding error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Unified face matching endpoint (works with both approaches)
+@router.post("/match-faces-structured", response_model=MatchFacesResponse)
+async def match_faces_structured(request: MatchFacesRequest):
+    """
+    Match a target face encoding against a list of photo faces (structured format).
+    
+    This endpoint performs the face matching algorithm to find photos
+    containing a specific person based on their selfie encoding.
+    """
+    photo_faces = [
+        {
+            "photo_id": pf.photo_id,
+            "face_id": pf.face_id,
+            "encoding": pf.encoding
+        }
+        for pf in request.photo_faces
+    ]
+    
+    matches = face_service.match_faces(request.target_encoding, photo_faces)
+    
+    return MatchFacesResponse(
+        matches=[
+            FaceMatch(
+                photo_id=m["photo_id"],
+                face_id=m["face_id"],
+                distance=m["distance"],
+                confidence=m["confidence"]
+            )
+            for m in matches
+        ]
+    )
 
 
 @router.post("/match-faces", response_model=FaceMatchResponse)

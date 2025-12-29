@@ -54,6 +54,7 @@ export default function QRCodeDisplay({ eventCode, eventName, size = 200 }: QRCo
       showCopyMessage(successMsg, 'success');
     } catch (error) {
       console.error('Failed to copy link using navigator.clipboard:', error);
+      showCopyMessage(errorMsg, 'error', 5000);
       // Fallback for older browsers
       try {
         const textArea = document.createElement('textarea');

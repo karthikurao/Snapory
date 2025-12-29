@@ -137,6 +137,19 @@ services:
     networks:
       - snapory-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  snapory-network:
+    driver: bridge
+
+networks:
+  snapory-network:
+    driver: bridge
 
 networks:
   snapory-network:
@@ -146,4 +159,6 @@ volumes:
   redis-data:
     driver: local
   snapory-data:
+    driver: local
   minio-data:
+    driver: local

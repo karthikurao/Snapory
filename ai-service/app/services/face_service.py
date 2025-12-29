@@ -6,6 +6,11 @@ Uses face_recognition library for face detection and encoding.
 import base64
 import logging
 from io import BytesIO
+from typing import Optional, List, Tuple
+
+import numpy as np
+from PIL import Image
+import httpx
 from typing import Optional
 
 import numpy as np
@@ -279,6 +284,144 @@ class FaceService:
                     "confidence": random.uniform(0.6, 0.95),
                     "is_match": True
                 })
+        return matches
+    
+    async def download_image(self, image_url: str) -> Optional[np.ndarray]:
+        """Download image from URL and convert to numpy array for PR #9 backend integration."""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(image_url, timeout=30.0)
+                response.raise_for_status()
+                
+            image = Image.open(BytesIO(response.content))
+            
+            # Convert to RGB if necessary
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            return np.array(image)
+        except Exception as e:
+            logger.error(f"Failed to download image: {e}")
+            return None
+    
+    async def detect_faces_from_url(self, image_url: str) -> dict:
+        """
+        Detect all faces in an image from URL and return their encodings (for PR #9).
+        
+        Returns:
+            dict with face_count, faces (list of face data with encodings and bounding boxes)
+        """
+        image = await self.download_image(image_url)
+        if image is None:
+            return {"face_count": 0, "faces": [], "error": "Failed to load image"}
+        
+        try:
+            # Detect face locations
+            face_locations = face_recognition.face_locations(image)
+            
+            if not face_locations:
+                return {"face_count": 0, "faces": []}
+            
+            # Get face encodings
+            face_encodings = face_recognition.face_encodings(image, face_locations)
+            
+            # Get image dimensions for percentage-based bounding boxes
+            height, width = image.shape[:2]
+            
+            faces = []
+            for i, (location, encoding) in enumerate(zip(face_locations, face_encodings)):
+                top, right, bottom, left = location
+                
+                faces.append({
+                    "index": i,
+                    "encoding": encoding.tolist(),
+                    "bounding_box": {
+                        "top": top / height,
+                        "right": right / width,
+                        "bottom": bottom / height,
+                        "left": left / width
+                    }
+                })
+            
+            return {
+                "face_count": len(faces),
+                "faces": faces
+            }
+        except Exception as e:
+            logger.error(f"Face detection failed: {e}")
+            return {"face_count": 0, "faces": [], "error": str(e)}
+    
+    async def encode_selfie_from_url(self, image_url: str) -> dict:
+        """
+        Encode a single face from a selfie image URL (for PR #9).
+        Expects exactly one face in the image.
+        
+        Returns:
+            dict with encoding (list of floats) or error
+        """
+        image = await self.download_image(image_url)
+        if image is None:
+            return {"face_detected": False, "error": "Failed to load image"}
+        
+        try:
+            # Detect faces
+            face_locations = face_recognition.face_locations(image)
+            
+            if not face_locations:
+                return {"face_detected": False, "error": "No face detected"}
+            
+            # If multiple faces, use the largest one (by area)
+            if len(face_locations) > 1:
+                logger.warning(f"Multiple faces detected ({len(face_locations)}), using largest")
+                largest_face = max(face_locations, key=lambda loc: (loc[2] - loc[0]) * (loc[1] - loc[3]))
+                face_locations = [largest_face]
+            
+            # Encode the face
+            encoding = face_recognition.face_encodings(image, face_locations)[0]
+            
+            return {
+                "face_detected": True,
+                "encoding": encoding.tolist()
+            }
+        except Exception as e:
+            logger.error(f"Selfie encoding failed: {e}")
+            return {"face_detected": False, "error": str(e)}
+    
+    def match_faces(self, target_encoding: List[float], photo_faces: List[dict]) -> List[dict]:
+        """
+        Match a target face encoding against a list of photo faces (for PR #9).
+        
+        Args:
+            target_encoding: The face encoding to match
+            photo_faces: List of dicts with photo_id, face_id, and encoding
+            
+        Returns:
+            List of matches with photo_id, face_id, distance, and confidence
+        """
+        if not FACE_RECOGNITION_AVAILABLE:
+            return []
+        
+        target_array = np.array(target_encoding)
+        matches = []
+        
+        for photo_face in photo_faces:
+            face_array = np.array(photo_face["encoding"])
+            
+            # Calculate Euclidean distance
+            distance = np.linalg.norm(target_array - face_array)
+            
+            # Only include if below threshold
+            if distance <= self.match_threshold:
+                confidence = max(0, 1 - (distance / self.match_threshold))
+                matches.append({
+                    "photo_id": photo_face["photo_id"],
+                    "face_id": photo_face["face_id"],
+                    "distance": float(distance),
+                    "confidence": float(confidence)
+                })
+        
+        # Sort by distance (best matches first)
+        matches.sort(key=lambda x: x["distance"])
         return matches
 
 

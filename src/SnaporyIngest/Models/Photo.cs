@@ -14,6 +14,15 @@ public class Photo
     public long FileSize { get; set; }
     public string ContentType { get; set; } = string.Empty;
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+    public PhotoProcessingStatus ProcessingStatus { get; set; } = PhotoProcessingStatus.Pending;
+    public int FaceCount { get; set; } = 0;
+    public string? ProcessingError { get; set; }
+    public DateTime? ProcessedAt { get; set; }
+    
+    // Compatibility property for simpler status check
+    public bool IsProcessed => ProcessingStatus == PhotoProcessingStatus.Completed || ProcessingStatus == PhotoProcessingStatus.NoFacesDetected;
+    
+    // JSON array of face encodings with validation (for compatibility with PR #7 approach)
     public bool IsProcessed { get; set; } = false;
     public int FaceCount { get; set; } = 0;
     
@@ -47,5 +56,17 @@ public class Photo
     }
     
     public Event? Event { get; set; }
+    public ICollection<PhotoFace> Faces { get; set; } = new List<PhotoFace>();
+    public ICollection<GuestPhotoMatch> GuestMatches { get; set; } = new List<GuestPhotoMatch>();
+    public ICollection<PhotoFaceMatch> FaceMatches { get; set; } = new List<PhotoFaceMatch>();
+}
+
+public enum PhotoProcessingStatus
+{
+    Pending = 0,
+    Processing = 1,
+    Completed = 2,
+    Failed = 3,
+    NoFacesDetected = 4
     public ICollection<PhotoFaceMatch> FaceMatches { get; set; } = new List<PhotoFaceMatch>();
 }
