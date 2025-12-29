@@ -2,8 +2,6 @@ using System.Security.Cryptography;
 
 namespace SnaporyIngest.Models;
 
-using System.Security.Cryptography;
-
 public class Event
 {
     public string EventId { get; set; } = Guid.NewGuid().ToString();

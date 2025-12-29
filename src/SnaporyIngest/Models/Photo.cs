@@ -22,10 +22,6 @@ public class Photo
     // Compatibility property for simpler status check
     public bool IsProcessed => ProcessingStatus == PhotoProcessingStatus.Completed || ProcessingStatus == PhotoProcessingStatus.NoFacesDetected;
     
-    // JSON array of face encodings with validation (for compatibility with PR #7 approach)
-    public bool IsProcessed { get; set; } = false;
-    public int FaceCount { get; set; } = 0;
-    
     // JSON array of face encodings with validation
     public string? FaceEncodings
     {
@@ -68,5 +64,4 @@ public enum PhotoProcessingStatus
     Completed = 2,
     Failed = 3,
     NoFacesDetected = 4
-    public ICollection<PhotoFaceMatch> FaceMatches { get; set; } = new List<PhotoFaceMatch>();
 }
