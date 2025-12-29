@@ -338,6 +338,15 @@ class FaceService:
                 })
         return matches
     
+    def _create_safe_http_client(self) -> httpx.AsyncClient:
+        """
+        Create an HTTPX AsyncClient configured to reduce SSRF risk.
+        
+        Currently disables automatic redirects so that we never follow
+        a redirect to an unvalidated internal URL.
+        """
+        return httpx.AsyncClient(follow_redirects=False)
+    
     async def download_image(self, image_url: str) -> Optional[np.ndarray]:
         """Download image from URL and convert to numpy array for PR #9 backend integration."""
         try:
@@ -346,10 +355,16 @@ class FaceService:
                 logger.error(f"Rejected image download from disallowed URL: {image_url}")
                 return None
             
-            async with httpx.AsyncClient() as client:
+            async with self._create_safe_http_client() as client:
                 response = await client.get(image_url, timeout=30.0)
-                response.raise_for_status()
-                
+            
+            # Do not follow redirects to unknown/unsafe locations
+            if 300 <= response.status_code < 400:
+                logger.error(f"Rejected image download due to redirect response from URL: {image_url}")
+                return None
+            
+            response.raise_for_status()
+            
             image = Image.open(BytesIO(response.content))
             
             # Convert to RGB if necessary
