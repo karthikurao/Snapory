@@ -117,6 +117,8 @@ export default function GuestEventPage() {
       document.body.removeChild(a);
     } catch (err) {
       console.error('Download failed:', err);
+      setError('Failed to download photo. Please try again.');
+      setStep('error');
     }
   };
 

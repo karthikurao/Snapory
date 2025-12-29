@@ -81,6 +81,7 @@ export default function EventDetailPage() {
       await loadEvent();
     } catch (err) {
       console.error('Delete failed:', err);
+      setError('Failed to delete photo');
     }
   };
 
@@ -90,7 +91,12 @@ export default function EventDetailPage() {
   };
 
   const copyGuestLink = async () => {
-    try { await navigator.clipboard.writeText(getQrUrl()); } catch {}
+    try {
+      await navigator.clipboard.writeText(getQrUrl());
+    } catch (err) {
+      console.error('Failed to copy guest link to clipboard:', err);
+      alert(`Unable to copy the link automatically. You can copy it manually:\n\n${getQrUrl()}`);
+    }
   };
 
   if (authLoading || isLoading) {
