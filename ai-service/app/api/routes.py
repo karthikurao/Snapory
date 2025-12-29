@@ -1,7 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from datetime import datetime
 from typing import Optional, List
-from typing import Optional
 from pydantic import BaseModel
 from app.models.schemas import HealthResponse
 from app.services.redis_service import redis_service

@@ -11,10 +11,6 @@ from typing import Optional, List, Tuple
 import numpy as np
 from PIL import Image
 import httpx
-from typing import Optional
-
-import numpy as np
-from PIL import Image
 
 logger = logging.getLogger(__name__)
 
