@@ -11,6 +11,9 @@ from typing import Optional, List, Tuple
 import numpy as np
 from PIL import Image
 import httpx
+import ipaddress
+import socket
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -259,6 +262,59 @@ class FaceService:
             "locations": locations
         }
     
+    def _is_ip_private(self, ip: str) -> bool:
+        """
+        Check whether the given IP address is in a private, loopback, link-local or multicast range.
+        """
+        try:
+            ip_obj = ipaddress.ip_address(ip)
+            return (
+                ip_obj.is_private
+                or ip_obj.is_loopback
+                or ip_obj.is_link_local
+                or ip_obj.is_multicast
+            )
+        except ValueError:
+            # If the IP is not valid, treat it as unsafe.
+            return True
+    
+    def _is_url_allowed(self, url: str) -> bool:
+        """
+        Basic SSRF protection: only allow http/https URLs and disallow private/internal IPs.
+        """
+        try:
+            parsed = urlparse(url)
+        except Exception:
+            return False
+        
+        if parsed.scheme not in ("http", "https"):
+            logger.warning(f"Blocked URL with disallowed scheme: {url}")
+            return False
+        
+        if not parsed.hostname:
+            logger.warning(f"Blocked URL with no hostname: {url}")
+            return False
+        
+        try:
+            # Resolve hostname to IPs and ensure none are private/internal.
+            addr_info = socket.getaddrinfo(parsed.hostname, None)
+        except Exception as e:
+            logger.warning(f"Blocked URL due to DNS resolution failure ({url}): {e}")
+            return False
+        
+        for family, _, _, _, sockaddr in addr_info:
+            ip = None
+            if family == socket.AF_INET:
+                ip = sockaddr[0]
+            elif family == socket.AF_INET6:
+                ip = sockaddr[0]
+            
+            if ip and self._is_ip_private(ip):
+                logger.warning(f"Blocked URL pointing to private/internal IP {ip}: {url}")
+                return False
+        
+        return True
+    
     def _mock_match_faces(self, count: int) -> list[dict]:
         """
         Mock face matching when face_recognition is not available.
@@ -285,6 +341,11 @@ class FaceService:
     async def download_image(self, image_url: str) -> Optional[np.ndarray]:
         """Download image from URL and convert to numpy array for PR #9 backend integration."""
         try:
+            # Validate URL to mitigate SSRF risks
+            if not self._is_url_allowed(image_url):
+                logger.error(f"Rejected image download from disallowed URL: {image_url}")
+                return None
+            
             async with httpx.AsyncClient() as client:
                 response = await client.get(image_url, timeout=30.0)
                 response.raise_for_status()
