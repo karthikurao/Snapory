@@ -81,7 +81,7 @@ export default function EventDetailPage() {
       await loadEvent();
     } catch (err) {
       console.error('Delete failed:', err);
-      setError('Failed to delete photo');
+      alert('Failed to delete photo. Please try again.');
     }
   };
 
