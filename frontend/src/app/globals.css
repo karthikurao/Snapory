@@ -129,6 +129,7 @@ h1 {
   font-size: 3rem;
   margin-bottom: 1.5rem;
   background: linear-gradient(to right, var(--primary), var(--foreground));
+  background: linear-gradient(to right, #000000, #434343);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -270,6 +271,7 @@ p {
   z-index: 50;
   border-bottom: 1px solid var(--border);
   background-color: var(--card-bg);
+  background-color: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }

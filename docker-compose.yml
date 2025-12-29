@@ -151,6 +151,10 @@ networks:
   snapory-network:
     driver: bridge
 
+networks:
+  snapory-network:
+    driver: bridge
+
 volumes:
   redis-data:
     driver: local
