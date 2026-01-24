@@ -142,6 +142,8 @@ public class GuestsController : ControllerBase
     [HttpPost("{sessionId}/find-photos")]
     public async Task<ActionResult<PhotoMatchResponse>> FindMatchingPhotos(string sessionId)
     {
+        var safeSessionId = sessionId?.Replace("\r", string.Empty).Replace("\n", string.Empty);
+
         var session = await _context.GuestSessions
             .Include(s => s.Event)
             .FirstOrDefaultAsync(s => s.SessionId == sessionId);
@@ -246,7 +248,7 @@ public class GuestsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to find matching photos for session: {SessionId}", sessionId);
+            _logger.LogError(ex, "Failed to find matching photos for session: {SessionId}", safeSessionId);
             return StatusCode(500, new { error = "Failed to find matching photos" });
         }
     }
