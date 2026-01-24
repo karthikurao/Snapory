@@ -370,13 +370,11 @@ public class GuestsController : ControllerBase
     }
     private static string SanitizeForLog(string value)
     {
-        if (string.IsNullOrEmpty(value))
-        {
-            return value ?? string.Empty;
-        }
+        // Normalize null to empty string
+        var input = value ?? string.Empty;
 
         // Remove control characters (including carriage returns and newlines) to prevent log forging
-        var chars = value.Where(c => !char.IsControl(c)).ToArray();
+        var chars = input.Where(c => !char.IsControl(c)).ToArray();
         return new string(chars);
     }
 }
