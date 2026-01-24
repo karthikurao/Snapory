@@ -121,7 +121,7 @@ public class AuthService : IAuthService
 
         if (user == null || !VerifyPassword(request.Password, user.PasswordHash))
         {
-            _logger.LogWarning("Login failed for email: {Email}", request.Email);
+            _logger.LogWarning("Login failed for email: {Email}", SanitizeForLog(request.Email));
             return null;
         }
 
