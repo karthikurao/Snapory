@@ -33,16 +33,48 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
+    private static string RedactEmailForLog(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return string.Empty;
+        }
+
+        // Remove any newline characters first to avoid log injection.
+        var sanitized = email
+            .Replace(Environment.NewLine, string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace("\r", string.Empty);
+
+        var atIndex = sanitized.IndexOf('@');
+        if (atIndex <= 0)
+        {
+            // Not a valid email format; return a truncated version.
+            return sanitized.Length <= 3 ? sanitized : sanitized[..3] + "...";
+        }
+
+        var localPart = sanitized[..atIndex];
+        var domainPart = sanitized[(atIndex + 1)..];
+
+        if (localPart.Length <= 2)
+        {
+            return new string('*', localPart.Length) + "@" + domainPart;
+        }
+
+        var firstChar = localPart[0];
+        var lastChar = localPart[^1];
+        var maskedMiddle = new string('*', localPart.Length - 2);
+
+        return $"{firstChar}{maskedMiddle}{lastChar}@{domainPart}";
+    }
+
     public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
     {
         // Check if user already exists
         if (await _context.Users.AnyAsync(u => u.Email.ToLower() == request.Email.ToLower()))
         {
-            var safeEmailForLog = request.Email
-                .Replace(Environment.NewLine, string.Empty)
-                .Replace("\n", string.Empty)
-                .Replace("\r", string.Empty);
-            _logger.LogWarning("Registration failed: Email {Email} already exists", safeEmailForLog);
+            var redactedEmailForLog = RedactEmailForLog(request.Email);
+            _logger.LogWarning("Registration failed: Email {Email} already exists", redactedEmailForLog);
             return null;
         }
 
@@ -58,7 +90,7 @@ public class AuthService : IAuthService
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("User registered: {UserId} - {Email}", user.UserId, user.Email);
+        _logger.LogInformation("User registered: {UserId} - {Email}", user.UserId, RedactEmailForLog(user.Email));
 
         return GenerateAuthResponse(user);
     }
