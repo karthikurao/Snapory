@@ -35,19 +35,30 @@ public class AuthService : IAuthService
 
     private static string SanitizeForLog(string value)
     {
+        // Ensure we never return null to the logger
         if (string.IsNullOrEmpty(value))
         {
-            return value;
+            return string.Empty;
         }
 
-        // Remove control characters (including CR/LF) to prevent log forging
+        // Remove characters that could be used for log forging, such as
+        // control characters (including CR/LF) and other separator characters.
         var builder = new StringBuilder(value.Length);
         foreach (var ch in value)
         {
-            if (!char.IsControl(ch))
+            // Skip standard control characters (U+0000–U+001F, U+007F)
+            if (char.IsControl(ch))
             {
-                builder.Append(ch);
+                continue;
             }
+
+            // Explicitly skip common line/paragraph separators
+            if (ch == '\r' || ch == '\n' || ch == '\u2028' || ch == '\u2029')
+            {
+                continue;
+            }
+
+            builder.Append(ch);
         }
 
         return builder.ToString();
