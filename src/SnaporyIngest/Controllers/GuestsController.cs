@@ -231,7 +231,8 @@ public class GuestsController : ControllerBase
                 await _context.SaveChangesAsync();
             }
 
-            _logger.LogInformation("Found {Count} matching photos for session: {SessionId}", matches.Count, sessionId);
+            var safeSessionId = SanitizeForLog(sessionId);
+            _logger.LogInformation("Found {Count} matching photos for session: {SessionId}", matches.Count, safeSessionId);
 
             return Ok(new PhotoMatchResponse
             {
@@ -242,7 +243,8 @@ public class GuestsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to find matching photos for session: {SessionId}", sessionId);
+            var safeSessionId = SanitizeForLog(sessionId);
+            _logger.LogError(ex, "Failed to find matching photos for session: {SessionId}", safeSessionId);
             return StatusCode(500, new { error = "Failed to find matching photos" });
         }
     }
@@ -365,6 +367,17 @@ public class GuestsController : ControllerBase
             sum += diff * diff;
         }
         return Math.Sqrt(sum);
+    }
+    private static string SanitizeForLog(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return value ?? string.Empty;
+        }
+
+        // Remove carriage returns and newlines to prevent log forging
+        return value.Replace("\r", string.Empty)
+                    .Replace("\n", string.Empty);
     }
 }
 
