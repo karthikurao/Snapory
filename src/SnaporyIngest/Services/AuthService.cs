@@ -40,11 +40,17 @@ public class AuthService : IAuthService
             return value;
         }
 
-        // Remove carriage returns and line feeds to prevent log forging
-        return value
-            .Replace("\r\n", string.Empty)
-            .Replace("\n", string.Empty)
-            .Replace("\r", string.Empty);
+        // Remove control characters (including CR/LF) to prevent log forging
+        var builder = new StringBuilder(value.Length);
+        foreach (var ch in value)
+        {
+            if (!char.IsControl(ch))
+            {
+                builder.Append(ch);
+            }
+        }
+
+        return builder.ToString();
     }
 
     public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
