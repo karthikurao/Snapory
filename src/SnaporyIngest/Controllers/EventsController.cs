@@ -54,7 +54,10 @@ public class EventsController : ControllerBase
         _context.Events.Add(newEvent);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Created event: {EventId} - {EventName} by user {UserId}", newEvent.EventId, newEvent.Name, userId);
+        var sanitizedEventName = (newEvent.Name ?? string.Empty)
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty);
+        _logger.LogInformation("Created event: {EventId} - {EventName} by user {UserId}", newEvent.EventId, sanitizedEventName, userId);
 
         return CreatedAtAction(nameof(GetEvent), new { eventId = newEvent.EventId }, new CreateEventResponse
         {
