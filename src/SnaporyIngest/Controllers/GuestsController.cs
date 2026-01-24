@@ -116,8 +116,7 @@ public class GuestsController : ControllerBase
             session.FaceEncoding = System.Text.Json.JsonSerializer.Serialize(encoding);
             await _context.SaveChangesAsync();
 
-            var safeSessionId = sessionId.Replace("\r", string.Empty).Replace("\n", string.Empty);
-            _logger.LogInformation("Selfie uploaded for session: {SessionId}", safeSessionId);
+            _logger.LogInformation("Selfie uploaded for session: {SessionId}", session.SessionId);
 
             return Ok(new SelfieUploadResponse
             {
