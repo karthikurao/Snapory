@@ -375,9 +375,9 @@ public class GuestsController : ControllerBase
             return value ?? string.Empty;
         }
 
-        // Remove carriage returns and newlines to prevent log forging
-        return value.Replace("\r", string.Empty)
-                    .Replace("\n", string.Empty);
+        // Remove control characters (including carriage returns and newlines) to prevent log forging
+        var chars = value.Where(c => !char.IsControl(c)).ToArray();
+        return new string(chars);
     }
 }
 
