@@ -86,7 +86,8 @@ public class PhotoService : IPhotoService
             // Enqueue background job for AI processing
             await _backgroundJobService.EnqueuePhotoProcessingAsync(photo.Id, storageKey, cancellationToken);
 
-            _logger.LogInformation("Photo {PhotoId} uploaded successfully for event {EventId}", photo.Id, eventId);
+            var sanitizedEventId = eventId?.Replace("\r", string.Empty).Replace("\n", string.Empty);
+            _logger.LogInformation("Photo {PhotoId} uploaded successfully for event {EventId}", photo.Id, sanitizedEventId);
 
             return new PhotoUploadResponse
             {
