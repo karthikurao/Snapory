@@ -40,8 +40,25 @@ public class AuthService : IAuthService
             return string.Empty;
         }
 
-        // Remove newline characters to prevent log forging via user-controlled input.
-        return value.Replace("\r", string.Empty).Replace("\n", string.Empty);
+        // Remove newline characters (including Unicode separators) to prevent log forging via user-controlled input.
+        var sb = new StringBuilder(value.Length);
+        foreach (var ch in value)
+        {
+            switch (ch)
+            {
+                case '\r':      // Carriage return
+                case '\n':      // Line feed
+                case '\u0085':  // Next line (NEL)
+                case '\u2028':  // Line separator
+                case '\u2029':  // Paragraph separator
+                    continue;
+                default:
+                    sb.Append(ch);
+                    break;
+            }
+        }
+
+        return sb.ToString();
     }
 
     public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
