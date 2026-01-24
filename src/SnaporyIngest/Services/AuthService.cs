@@ -33,29 +33,56 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    private static string SanitizeForLog(string? value)
+    private static string RedactEmailForLog(string email)
     {
-        if (string.IsNullOrEmpty(value))
+        if (string.IsNullOrWhiteSpace(email))
         {
             return string.Empty;
         }
 
-        // Remove newline characters (including Unicode separators) to prevent log forging via user-controlled input.
-        var sb = new StringBuilder(value.Length);
-        foreach (var ch in value)
+        // Remove any newline characters first to avoid log injection.
+        var sanitized = email.ReplaceLineEndings(string.Empty);
+
+        var atIndex = sanitized.IndexOf('@');
+        if (atIndex <= 0)
         {
-            switch (ch)
-            {
-                case '\r':      // Carriage return
-                case '\n':      // Line feed
-                case '\u0085':  // Next line (NEL)
-                case '\u2028':  // Line separator
-                case '\u2029':  // Paragraph separator
-                    continue;
-                default:
-                    sb.Append(ch);
-                    break;
-            }
+            // Not a valid email format; return a truncated version.
+            return sanitized.Length <= 3 ? sanitized : sanitized[..3] + "...";
+        }
+
+        var localPart = sanitized[..atIndex];
+        var domainPart = sanitized[(atIndex + 1)..];
+
+        if (localPart.Length <= 2)
+        {
+            return new string('*', localPart.Length) + "@" + domainPart;
+        }
+
+        var firstChar = localPart[0];
+        var lastChar = localPart[^1];
+        var maskedMiddle = new string('*', localPart.Length - 2);
+
+        return $"{firstChar}{maskedMiddle}{lastChar}@{domainPart}";
+    }
+
+    private static string HashEmailForLog(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return string.Empty;
+        }
+
+        // Normalize and sanitize to ensure consistent hashing and avoid log injection.
+        var normalized = email.Trim().ToLowerInvariant().ReplaceLineEndings(string.Empty);
+
+        using var sha256 = SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(normalized);
+        var hashBytes = sha256.ComputeHash(bytes);
+
+        var sb = new StringBuilder(hashBytes.Length * 2);
+        foreach (var b in hashBytes)
+        {
+            sb.Append(b.ToString("x2"));
         }
 
         return sb.ToString();
@@ -66,7 +93,8 @@ public class AuthService : IAuthService
         // Check if user already exists
         if (await _context.Users.AnyAsync(u => u.Email.ToLower() == request.Email.ToLower()))
         {
-            _logger.LogWarning("Registration failed: Email {Email} already exists", request.Email);
+            var emailHashForLog = HashEmailForLog(request.Email);
+            _logger.LogWarning("Registration failed: EmailHash {EmailHash} already exists", emailHashForLog);
             return null;
         }
 
@@ -82,7 +110,7 @@ public class AuthService : IAuthService
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("User registered: {UserId} - {Email}", user.UserId, user.Email);
+        _logger.LogInformation("User registered: {UserId} - EmailHash {EmailHash}", user.UserId, HashEmailForLog(user.Email));
 
         return GenerateAuthResponse(user);
     }
