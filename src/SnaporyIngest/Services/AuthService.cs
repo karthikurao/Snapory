@@ -33,6 +33,17 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
+    private static string SanitizeForLog(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        // Remove newline characters to prevent log forging via user-controlled input.
+        return value.Replace("\r", string.Empty).Replace("\n", string.Empty);
+    }
+
     public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
     {
         // Check if user already exists
@@ -65,7 +76,7 @@ public class AuthService : IAuthService
 
         if (user == null || !VerifyPassword(request.Password, user.PasswordHash))
         {
-            _logger.LogWarning("Login failed for email: {Email}", request.Email);
+            _logger.LogWarning("Login failed for email: {Email}", SanitizeForLog(request.Email));
             return null;
         }
 
