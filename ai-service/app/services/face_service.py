@@ -278,42 +278,57 @@ class FaceService:
             # If the IP is not valid, treat it as unsafe.
             return True
     
-    def _is_url_allowed(self, url: str) -> bool:
+    def _resolve_and_validate_url(self, url: str) -> Optional[tuple[urlparse, str]]:
         """
-        Basic SSRF protection: only allow http/https URLs and disallow private/internal IPs.
+        Resolve the hostname for a URL and ensure it does not point to a private/internal IP.
+        
+        Returns:
+            Tuple of (parsed_url, ip_address) if the URL is allowed, otherwise None.
         """
         try:
             parsed = urlparse(url)
-        except Exception:
-            return False
-        
+        except Exception as e:
+            logger.warning(f"Blocked URL due to parse error ({url}): {e}")
+            return None
+
         if parsed.scheme not in ("http", "https"):
             logger.warning(f"Blocked URL with disallowed scheme: {url}")
-            return False
-        
+            return None
+
         if not parsed.hostname:
             logger.warning(f"Blocked URL with no hostname: {url}")
-            return False
-        
+            return None
+
         try:
             # Resolve hostname to IPs and ensure none are private/internal.
             addr_info = socket.getaddrinfo(parsed.hostname, None)
         except Exception as e:
             logger.warning(f"Blocked URL due to DNS resolution failure ({url}): {e}")
-            return False
-        
+            return None
+
         for family, _, _, _, sockaddr in addr_info:
             ip = None
             if family == socket.AF_INET:
                 ip = sockaddr[0]
             elif family == socket.AF_INET6:
                 ip = sockaddr[0]
-            
-            if ip and self._is_ip_private(ip):
-                logger.warning(f"Blocked URL pointing to private/internal IP {ip}: {url}")
-                return False
-        
-        return True
+
+            if ip:
+                if self._is_ip_private(ip):
+                    logger.warning(f"Blocked URL pointing to private/internal IP {ip}: {url}")
+                    return None
+                # Use the first non-private IP we find.
+                return parsed, ip
+
+        # If we could not determine any usable IP, reject.
+        logger.warning(f"Blocked URL with no resolvable public IP: {url}")
+        return None
+
+    def _is_url_allowed(self, url: str) -> bool:
+        """
+        Basic SSRF protection: only allow http/https URLs and disallow private/internal IPs.
+        """
+        return self._resolve_and_validate_url(url) is not None
     
     def _mock_match_faces(self, count: int) -> list[dict]:
         """
@@ -350,13 +365,24 @@ class FaceService:
     async def download_image(self, image_url: str) -> Optional[np.ndarray]:
         """Download image from URL and convert to numpy array for PR #9 backend integration."""
         try:
-            # Validate URL to mitigate SSRF risks
-            if not self._is_url_allowed(image_url):
+            # Resolve and validate URL to mitigate SSRF risks
+            resolved = self._resolve_and_validate_url(image_url)
+            if not resolved:
                 logger.error(f"Rejected image download from disallowed URL: {image_url}")
                 return None
-            
+
+            parsed, ip = resolved
+
+            # Build URL that connects directly to the validated IP while preserving the original path/query.
+            netloc = ip
+            safe_url = parsed._replace(netloc=netloc).geturl()
+
+            headers = {
+                "Host": parsed.hostname
+            }
+
             async with self._create_safe_http_client() as client:
-                response = await client.get(image_url, timeout=30.0)
+                response = await client.get(safe_url, headers=headers, timeout=30.0)
             
             # Do not follow redirects to unknown/unsafe locations
             if 300 <= response.status_code < 400:
