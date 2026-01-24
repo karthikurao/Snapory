@@ -33,12 +33,26 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
+    private static string SanitizeForLog(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return value;
+        }
+
+        // Remove carriage returns and line feeds to prevent log forging
+        return value
+            .Replace("\r\n", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace("\r", string.Empty);
+    }
+
     public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
     {
         // Check if user already exists
         if (await _context.Users.AnyAsync(u => u.Email.ToLower() == request.Email.ToLower()))
         {
-            _logger.LogWarning("Registration failed: Email {Email} already exists", request.Email);
+            _logger.LogWarning("Registration failed: Email {Email} already exists", SanitizeForLog(request.Email));
             return null;
         }
 
@@ -54,7 +68,7 @@ public class AuthService : IAuthService
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("User registered: {UserId} - {Email}", user.UserId, user.Email);
+        _logger.LogInformation("User registered: {UserId} - {Email}", user.UserId, SanitizeForLog(user.Email));
 
         return GenerateAuthResponse(user);
     }
@@ -65,14 +79,14 @@ public class AuthService : IAuthService
 
         if (user == null || !VerifyPassword(request.Password, user.PasswordHash))
         {
-            _logger.LogWarning("Login failed for email: {Email}", request.Email);
+            _logger.LogWarning("Login failed for email: {Email}", SanitizeForLog(request.Email));
             return null;
         }
 
         user.LastLoginAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("User logged in: {UserId} - {Email}", user.UserId, user.Email);
+        _logger.LogInformation("User logged in: {UserId} - {Email}", user.UserId, SanitizeForLog(user.Email));
 
         return GenerateAuthResponse(user);
     }
