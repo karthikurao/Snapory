@@ -41,10 +41,7 @@ public class AuthService : IAuthService
         }
 
         // Remove any newline characters first to avoid log injection.
-        var sanitized = email
-            .Replace(Environment.NewLine, string.Empty)
-            .Replace("\n", string.Empty)
-            .Replace("\r", string.Empty);
+        var sanitized = email.ReplaceLineEndings(string.Empty);
 
         var atIndex = sanitized.IndexOf('@');
         if (atIndex <= 0)
