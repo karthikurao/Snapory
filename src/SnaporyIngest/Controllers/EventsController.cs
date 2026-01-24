@@ -299,8 +299,8 @@ public class EventsController : ControllerBase
                     UploadedAt = photo.UploadedAt
                 });
 
-                _logger.LogInformation("Uploaded photo: {PhotoId} - {FileName} for event {EventId}", 
-                    photo.PhotoId, photo.FileName, eventId);
+                _logger.LogInformation("Uploaded photo: {PhotoId} - {FileName} for event {EventId}",
+                    photo.PhotoId, photo.FileName, SanitizeForLogging(eventId));
             }
             catch (Exception ex)
             {
@@ -322,6 +322,39 @@ public class EventsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(response);
+    }
+
+    private static string? SanitizeForLogging(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return value;
+        }
+
+        // Remove all control characters and normalize whitespace to reduce log-forging risk
+        var noControlChars = new string(value.Where(ch => !char.IsControl(ch)).ToArray());
+
+        // Optionally collapse consecutive whitespace into a single space to avoid visual confusion
+        var sb = new System.Text.StringBuilder(noControlChars.Length);
+        bool lastWasWhitespace = false;
+        foreach (var ch in noControlChars)
+        {
+            if (char.IsWhiteSpace(ch))
+            {
+                if (!lastWasWhitespace)
+                {
+                    sb.Append(' ');
+                    lastWasWhitespace = true;
+                }
+            }
+            else
+            {
+                sb.Append(ch);
+                lastWasWhitespace = false;
+            }
+        }
+
+        return sb.ToString();
     }
 
     /// <summary>
