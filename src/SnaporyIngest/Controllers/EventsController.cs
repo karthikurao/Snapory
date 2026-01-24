@@ -296,8 +296,8 @@ public class EventsController : ControllerBase
                     UploadedAt = photo.UploadedAt
                 });
 
-                _logger.LogInformation("Uploaded photo: {PhotoId} - {FileName} for event {EventId}", 
-                    photo.PhotoId, photo.FileName, eventId);
+                _logger.LogInformation("Uploaded photo: {PhotoId} - {FileName} for event {EventId}",
+                    photo.PhotoId, photo.FileName, SanitizeForLogging(eventId));
             }
             catch (Exception ex)
             {
@@ -319,6 +319,18 @@ public class EventsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(response);
+    }
+
+    private static string? SanitizeForLogging(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return value;
+        }
+
+        // Remove carriage returns, line feeds, and other control characters
+        var sanitized = new string(value.Where(ch => !char.IsControl(ch) || ch == '\t').ToArray());
+        return sanitized;
     }
 
     /// <summary>
