@@ -127,7 +127,11 @@ public class GuestsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process selfie for session: {SessionId}", sessionId);
+            var safeSessionId = sessionId
+                .Replace(Environment.NewLine, string.Empty)
+                .Replace("\n", string.Empty)
+                .Replace("\r", string.Empty);
+            _logger.LogError(ex, "Failed to process selfie for session: {SessionId}", safeSessionId);
             return StatusCode(500, new { error = "Failed to process selfie" });
         }
     }
@@ -138,6 +142,8 @@ public class GuestsController : ControllerBase
     [HttpPost("{sessionId}/find-photos")]
     public async Task<ActionResult<PhotoMatchResponse>> FindMatchingPhotos(string sessionId)
     {
+        var safeSessionId = sessionId?.Replace("\r", string.Empty).Replace("\n", string.Empty);
+
         var session = await _context.GuestSessions
             .Include(s => s.Event)
             .FirstOrDefaultAsync(s => s.SessionId == sessionId);
