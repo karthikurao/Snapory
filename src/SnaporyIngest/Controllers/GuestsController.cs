@@ -373,7 +373,7 @@ public class GuestsController : ControllerBase
         // Normalize null to empty string
         var input = value ?? string.Empty;
 
-        // Remove control characters (including carriage returns and newlines) to prevent log forging
+        // Remove all control characters to prevent log forging
         var chars = input.Where(c => !char.IsControl(c)).ToArray();
         return new string(chars);
     }
