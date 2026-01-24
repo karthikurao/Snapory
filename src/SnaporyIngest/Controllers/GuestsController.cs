@@ -116,7 +116,8 @@ public class GuestsController : ControllerBase
             session.FaceEncoding = System.Text.Json.JsonSerializer.Serialize(encoding);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Selfie uploaded for session: {SessionId}", sessionId);
+            var safeSessionId = sessionId.Replace("\r", string.Empty).Replace("\n", string.Empty);
+            _logger.LogInformation("Selfie uploaded for session: {SessionId}", safeSessionId);
 
             return Ok(new SelfieUploadResponse
             {
@@ -127,7 +128,8 @@ public class GuestsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process selfie for session: {SessionId}", sessionId);
+            var safeSessionId = sessionId.Replace("\r", string.Empty).Replace("\n", string.Empty);
+            _logger.LogError(ex, "Failed to process selfie for session: {SessionId}", safeSessionId);
             return StatusCode(500, new { error = "Failed to process selfie" });
         }
     }
