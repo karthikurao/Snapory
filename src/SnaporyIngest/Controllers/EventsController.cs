@@ -328,9 +328,30 @@ public class EventsController : ControllerBase
             return value;
         }
 
-        // Remove carriage returns, line feeds, and other control characters
-        var sanitized = new string(value.Where(ch => !char.IsControl(ch) || ch == '\t').ToArray());
-        return sanitized;
+        // Remove all control characters and normalize whitespace to reduce log-forging risk
+        var noControlChars = new string(value.Where(ch => !char.IsControl(ch)).ToArray());
+
+        // Optionally collapse consecutive whitespace into a single space to avoid visual confusion
+        var sb = new System.Text.StringBuilder(noControlChars.Length);
+        bool lastWasWhitespace = false;
+        foreach (var ch in noControlChars)
+        {
+            if (char.IsWhiteSpace(ch))
+            {
+                if (!lastWasWhitespace)
+                {
+                    sb.Append(' ');
+                    lastWasWhitespace = true;
+                }
+            }
+            else
+            {
+                sb.Append(ch);
+                lastWasWhitespace = false;
+            }
+        }
+
+        return sb.ToString();
     }
 
     /// <summary>
