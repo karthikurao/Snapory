@@ -38,7 +38,11 @@ public class AuthService : IAuthService
         // Check if user already exists
         if (await _context.Users.AnyAsync(u => u.Email.ToLower() == request.Email.ToLower()))
         {
-            _logger.LogWarning("Registration failed: Email {Email} already exists", request.Email);
+            var safeEmailForLog = request.Email
+                .Replace(Environment.NewLine, string.Empty)
+                .Replace("\n", string.Empty)
+                .Replace("\r", string.Empty);
+            _logger.LogWarning("Registration failed: Email {Email} already exists", safeEmailForLog);
             return null;
         }
 
