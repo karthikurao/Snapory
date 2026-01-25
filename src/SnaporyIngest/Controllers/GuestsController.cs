@@ -127,8 +127,8 @@ public class GuestsController : ControllerBase
         }
         catch (Exception ex)
         {
-            var safeSessionId = sessionId.Replace("\r", string.Empty).Replace("\n", string.Empty);
-            _logger.LogError(ex, "Failed to process selfie for session: {SessionId}", safeSessionId);
+            var safeSessionIdLog = sessionId.Replace("\r", string.Empty).Replace("\n", string.Empty);
+            _logger.LogError(ex, "Failed to process selfie for session: {SessionId}", safeSessionIdLog);
             return StatusCode(500, new { error = "Failed to process selfie" });
         }
     }
@@ -234,8 +234,8 @@ public class GuestsController : ControllerBase
                 await _context.SaveChangesAsync();
             }
 
-            var safeSessionId = SanitizeForLog(sessionId);
-            _logger.LogInformation("Found {Count} matching photos for session: {SessionId}", matches.Count, safeSessionId);
+            var safeSessionIdLog = SanitizeForLog(sessionId);
+            _logger.LogInformation("Found {Count} matching photos for session: {SessionId}", matches.Count, safeSessionIdLog);
 
             return Ok(new PhotoMatchResponse
             {
@@ -246,8 +246,8 @@ public class GuestsController : ControllerBase
         }
         catch (Exception ex)
         {
-            var safeSessionId = SanitizeForLog(sessionId);
-            _logger.LogError(ex, "Failed to find matching photos for session: {SessionId}", safeSessionId);
+            var safeSessionIdLog = SanitizeForLog(sessionId);
+            _logger.LogError(ex, "Failed to find matching photos for session: {SessionId}", safeSessionIdLog);
             return StatusCode(500, new { error = "Failed to find matching photos" });
         }
     }

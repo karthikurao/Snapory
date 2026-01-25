@@ -15,6 +15,8 @@ public class SnaporyContext : DbContext
     public DbSet<PhotoFace> PhotoFaces { get; set; }
     public DbSet<GuestSession> GuestSessions { get; set; }
     public DbSet<GuestPhotoMatch> GuestPhotoMatches { get; set; }
+    public DbSet<GuestFace> GuestFaces { get; set; }
+    public DbSet<PhotoFaceMatch> PhotoFaceMatches { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -87,6 +89,28 @@ public class SnaporyContext : DbContext
             entity.HasOne(m => m.Photo)
                 .WithMany(p => p.GuestMatches)
                 .HasForeignKey(m => m.PhotoId);
+        });
+
+        modelBuilder.Entity<GuestFace>(entity =>
+        {
+            entity.HasKey(g => g.GuestFaceId);
+            
+            entity.HasOne(g => g.Event)
+                .WithMany()
+                .HasForeignKey(g => g.EventId);
+        });
+
+        modelBuilder.Entity<PhotoFaceMatch>(entity =>
+        {
+            entity.HasKey(m => m.MatchId);
+            
+            entity.HasOne(m => m.Photo)
+                .WithMany(p => p.FaceMatches)
+                .HasForeignKey(m => m.PhotoId);
+                
+            entity.HasOne(m => m.GuestFace)
+                .WithMany(g => g.PhotoMatches)
+                .HasForeignKey(m => m.GuestFaceId);
         });
     }
 }

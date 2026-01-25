@@ -99,3 +99,6 @@ temp/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+src/SnaporyIngest/appsettings.json
+src/SnaporyIngest/appsettings.Development.json
