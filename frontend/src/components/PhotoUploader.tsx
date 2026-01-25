@@ -65,7 +65,7 @@ export default function PhotoUploader() {
       setSelectedFile(null);
       setPreviewUrl(null);
       setEventId('');
-      
+
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to upload photo. Please try again.');
@@ -121,9 +121,9 @@ export default function PhotoUploader() {
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.25rem', color: 'var(--foreground)' }}>Upload Photo</h2>
         <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', margin: 0 }}>Tap to select or drag and drop</p>
       </div>
-      
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div 
+        <div
           style={dropzoneStyles}
           onClick={triggerFileInput}
           onDragOver={handleDragOver}
@@ -138,16 +138,16 @@ export default function PhotoUploader() {
             disabled={uploading}
             style={{ display: 'none' }}
           />
-          
+
           {previewUrl ? (
             <div style={{ position: 'relative', width: '100%', aspectRatio: '16/10' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src={previewUrl} 
-                alt="Preview of selected photo" 
-                style={{ 
-                  width: '100%', 
-                  height: '100%', 
+              <img
+                src={previewUrl}
+                alt="Preview of selected photo"
+                style={{
+                  width: '100%',
+                  height: '100%',
                   objectFit: 'cover',
                   borderRadius: 'calc(var(--radius) - 2px)'
                 }}
@@ -164,9 +164,9 @@ export default function PhotoUploader() {
               }}>
                 <span style={{ color: 'white', fontSize: '0.75rem', fontWeight: 500 }}>
                   {selectedFile && selectedFile.name.length > 20 ? selectedFile.name.substring(0, 20) + '...' : selectedFile?.name}
-                  {selectedFile?.name.length > 20 ? selectedFile?.name.substring(0, 20) + '...' : selectedFile?.name}
+
                 </span>
-                <button 
+                <button
                   onClick={clearSelection}
                   style={{
                     background: 'rgba(255,255,255,0.9)',
@@ -182,8 +182,8 @@ export default function PhotoUploader() {
                   }}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               </div>
@@ -200,9 +200,9 @@ export default function PhotoUploader() {
                 justifyContent: 'center'
               }}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
               </div>
               <div>
@@ -213,12 +213,12 @@ export default function PhotoUploader() {
                   or drag and drop here
                 </span>
               </div>
-              <span style={{ 
-                fontSize: '0.6875rem', 
-                color: 'var(--muted-foreground)', 
-                backgroundColor: 'var(--secondary)', 
-                padding: '0.25rem 0.625rem', 
-                borderRadius: '9999px' 
+              <span style={{
+                fontSize: '0.6875rem',
+                color: 'var(--muted-foreground)',
+                backgroundColor: 'var(--secondary)',
+                padding: '0.25rem 0.625rem',
+                borderRadius: '9999px'
               }}>
                 JPG, PNG, GIF, WebP • Max 10MB
               </span>
@@ -227,14 +227,14 @@ export default function PhotoUploader() {
         </div>
 
         <div>
-          <label htmlFor="event-id" style={{ 
-            fontSize: '0.875rem', 
-            fontWeight: 600, 
-            marginBottom: '0.5rem', 
-            display: 'block', 
-            color: 'var(--foreground)' 
+          <label htmlFor="event-id" style={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            marginBottom: '0.5rem',
+            display: 'block',
+            color: 'var(--foreground)'
           }}>
-            Event ID 
+            Event ID
             <span style={{ color: 'var(--muted-foreground)', fontWeight: 400, fontSize: '0.75rem', marginLeft: '0.25rem' }}>(Optional)</span>
           </label>
           <input
@@ -253,8 +253,8 @@ export default function PhotoUploader() {
           onClick={handleUpload}
           disabled={!selectedFile || uploading}
           className="btn btn-primary"
-          style={{ 
-            width: '100%', 
+          style={{
+            width: '100%',
             position: 'relative',
             opacity: (!selectedFile || uploading) ? 0.5 : 1
           }}
@@ -270,9 +270,9 @@ export default function PhotoUploader() {
           ) : (
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
               Upload Photo
             </span>
@@ -294,9 +294,9 @@ export default function PhotoUploader() {
           animation: 'fadeIn 0.3s ease'
         }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           {error}
         </div>
@@ -322,7 +322,7 @@ export default function PhotoUploader() {
             margin: '0 auto 0.75rem'
           }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6 9 17l-5-5"/>
+              <path d="M20 6 9 17l-5-5" />
             </svg>
           </div>
           <div style={{ color: 'var(--success-foreground)', fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>Upload Successful!</div>
@@ -330,34 +330,7 @@ export default function PhotoUploader() {
             Your photo has been added to the event.
             {uploadResult.photos && uploadResult.photos.length > 0 && ` (Photo ID: ${uploadResult.photos[0].photoId.substring(0, 8)}...)`}
           </p>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--success-foreground)', marginBottom: '1rem' }}>Your photo has been added to the event.</p>
-          <a 
-            href={uploadResult.storageUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0.5rem 1rem',
-              backgroundColor: 'white',
-              border: '1px solid var(--success)',
-              borderRadius: 'var(--radius)',
-              fontSize: '0.8125rem',
-              fontWeight: 500,
-              color: 'var(--success-foreground)',
-              textDecoration: 'none',
-              boxShadow: 'var(--shadow-sm)',
-              transition: 'all 0.2s'
-            }}
-          >
-            View Photo
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '0.375rem' }}>
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-              <polyline points="15 3 21 3 21 9"/>
-              <line x1="10" y1="14" x2="21" y2="3"/>
-            </svg>
-          </a>
+
         </div>
       )}
 
