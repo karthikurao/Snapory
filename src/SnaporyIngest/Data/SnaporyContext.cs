@@ -96,7 +96,7 @@ public class SnaporyContext : DbContext
             entity.HasKey(g => g.GuestFaceId);
             
             entity.HasOne(g => g.Event)
-                .WithMany()
+                .WithMany(e => e.GuestFaces)
                 .HasForeignKey(g => g.EventId);
         });
 
