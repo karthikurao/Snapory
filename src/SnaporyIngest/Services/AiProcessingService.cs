@@ -27,7 +27,7 @@ public class AiProcessingService : IAiProcessingService
         try
         {
             var request = new { image_url = imageUrl };
-            var response = await _httpClient.PostAsJsonAsync($"{_aiServiceUrl}/api/encode-selfie", request);
+            var response = await _httpClient.PostAsJsonAsync($"{_aiServiceUrl}/api/encode-selfie-url", request);
             
             if (!response.IsSuccessStatusCode)
             {
@@ -50,7 +50,7 @@ public class AiProcessingService : IAiProcessingService
         try
         {
             var request = new { image_url = imageUrl };
-            var response = await _httpClient.PostAsJsonAsync($"{_aiServiceUrl}/api/detect-faces", request);
+            var response = await _httpClient.PostAsJsonAsync($"{_aiServiceUrl}/api/detect-faces-url", request);
             
             if (!response.IsSuccessStatusCode)
             {
@@ -82,7 +82,7 @@ public class AiProcessingService : IAiProcessingService
                 }).ToList()
             };
 
-            var response = await _httpClient.PostAsJsonAsync($"{_aiServiceUrl}/api/match-faces", request);
+            var response = await _httpClient.PostAsJsonAsync($"{_aiServiceUrl}/api/match-faces-structured", request);
             
             if (!response.IsSuccessStatusCode)
             {
