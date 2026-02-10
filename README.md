@@ -92,9 +92,9 @@ Open `.env` (or `src/SnaporyIngest/appsettings.json`) and add your cloud credent
 docker compose up --build
 ```
 > **Access Points:**
-> - Frontend: `http://localhost:3000`
-> - Backend: `http://localhost:5000`
-> - AI Service: `http://localhost:8000`
+> - Frontend: `http://localhost/`
+> - Backend API: `http://localhost/api`
+> - AI Service: `http://localhost/ai`
 
 ---
 

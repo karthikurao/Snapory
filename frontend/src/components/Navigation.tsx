@@ -66,13 +66,13 @@ export default function Navigation() {
               <span className="text-sm" style={{ color: 'var(--muted-foreground)', paddingBottom: '0.3rem' }}>
                 Signed in as {user?.name || user?.email}
               </span>
-              <Link href="/dashboard" className="nav-link active" onClick={closeMenu}>Dashboard</Link>
-              <Link href="/create-event" className="nav-link" onClick={closeMenu}>New Event</Link>
+              <Link href="/dashboard" className={navLinkClass('/dashboard')} onClick={closeMenu}>Dashboard</Link>
+              <Link href="/create-event" className={navLinkClass('/create-event')} onClick={closeMenu}>New Event</Link>
               <button onClick={handleLogout} className="btn btn-secondary" style={{ marginTop: '0.4rem' }}>Logout</button>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              <Link href="/login" className="nav-link" onClick={closeMenu}>Login</Link>
+              <Link href="/login" className={navLinkClass('/login')} onClick={closeMenu}>Login</Link>
               <Link href="/register" className="btn btn-primary" onClick={closeMenu}>Get Started</Link>
             </div>
           )}

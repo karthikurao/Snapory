@@ -21,20 +21,21 @@ if [[ ! -f "$ENV_FILE" ]]; then
   echo "✅ Created .env from .env.example"
 fi
 
-require_command() {
-  if ! command -v "$1" >/dev/null 2>&1; then
-    echo "❌ Required command '$1' not found"
-    exit 1
-  fi
-}
-
-require_command python
+PYTHON_BIN=""
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_BIN="python"
+else
+  echo "❌ Python interpreter not found. Install python3 or python."
+  exit 1
+fi
 
 set_env_value() {
   local key="$1"
   local value="$2"
 
-  python - "$ENV_FILE" "$key" "$value" <<'PY'
+  "$PYTHON_BIN" - "$ENV_FILE" "$key" "$value" <<'PY'
 from pathlib import Path
 import sys
 
@@ -59,7 +60,7 @@ PY
 
 get_env_value() {
   local key="$1"
-  python - "$ENV_FILE" "$key" <<'PY'
+  "$PYTHON_BIN" - "$ENV_FILE" "$key" <<'PY'
 from pathlib import Path
 import sys
 
@@ -76,7 +77,7 @@ PY
 
 JWT_SECRET_VAL="$(get_env_value "JWT_SECRET")"
 if [[ -z "$JWT_SECRET_VAL" || "$JWT_SECRET_VAL" == "change_this_to_a_secure_random_string_in_production" ]]; then
-  NEW_SECRET="$(python - <<'PY'
+  NEW_SECRET="$("$PYTHON_BIN" - <<'PY'
 import secrets
 print(secrets.token_urlsafe(48))
 PY
