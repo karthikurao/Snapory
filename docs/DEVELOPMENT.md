@@ -79,11 +79,11 @@ cp .env.example .env
 ### Option 1: Using Docker Compose (Recommended)
 
 ```bash
-# Build and start all services
-docker-compose up --build
-
-# Or use the quick start script
+# Recommended: configures .env and starts the stack
 ./quick-start.sh
+
+# Fallback manual start (if already configured)
+docker compose up --build
 ```
 
 ### Option 2: Running Services Individually
