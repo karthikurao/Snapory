@@ -87,7 +87,9 @@ Open `.env` (or `src/SnaporyIngest/appsettings.json`) and add your cloud credent
 
 ### 3. Run Everything (Docker)
 ```bash
-docker-compose up --build
+./quick-start.sh
+# or
+docker compose up --build
 ```
 > **Access Points:**
 > - Frontend: `http://localhost:3000`
